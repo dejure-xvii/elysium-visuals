@@ -91,11 +91,39 @@ publishing {
 	}
 }
 
-// Автокопирование готового jar в папку mods лаунчера после сборки.
-tasks.register('deployMod', Copy) {
-	dependsOn tasks.named('jar')
-	from tasks.named('jar').flatMap { it.archiveFile }
-	into "${System.getenv('APPDATA')}/.minecraft/mods"
+// Автокопирование готового jar в папку mods лаунчера Elysium после сборки.
+// Старые jar этого мода в папке удаляются, чтобы не было дублей.
+// Автокопирование готового jar в папку mods лаунчера Elysium после сборки.
+// Старые jar этого мода удаляются, чтобы не было дублей.
+tasks.register('deployMod') {
+	def jarTask = tasks.named('jar')
+	def jarFile = jarTask.flatMap { it.archiveFile }
+	def modsPath = "${System.getenv('APPDATA')}/.elysium/mods"
+
+	dependsOn jarTask
+
+	doLast {
+		def modsDir = new File(modsPath)
+		modsDir.mkdirs()
+
+		// удаляем старые jar этого мода (fabric-api и другие моды не трогаем)
+		def old = modsDir.listFiles()
+		if (old != null) {
+			for (File f : old) {
+				if (f.name.startsWith('elysium-visuals') && f.name.endsWith('.jar')) {
+					f.delete()
+				}
+			}
+		}
+
+		// кладём свежий
+		def src = jarFile.get().asFile
+		java.nio.file.Files.copy(
+				src.toPath(),
+				new File(modsDir, src.name).toPath(),
+				java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+		println "Deployed ${src.name} -> ${modsDir}"
+	}
 }
 
 tasks.named('build') {
