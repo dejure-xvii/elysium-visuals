@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "elysium-visuals",
+	"version": "${version}",
+	"name": "Elysium Visuals",
+	"description": "Client-side ClickGUI with customizable themes, including Liquid Glass.",
+	"authors": [
+		"kirillyalovenko463-hash"
+	],
+	"contact": {
+		"homepage": "https://github.com/kirillyalovenko463-hash/elysium-visuals",
+		"sources": "https://github.com/kirillyalovenko463-hash/elysium-visuals",
+		"issues": "https://github.com/kirillyalovenko463-hash/elysium-visuals/issues"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/elysium-visuals/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.elysium.visuals.client.ElysiumVisualsClient"
+		]
+	},
+	"mixins": [
+		{
+			"config": "elysium-visuals.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

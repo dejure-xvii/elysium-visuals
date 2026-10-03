@@ -1,0 +1,25 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "dev.elysium.visuals.client.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"AbstractContainerScreenAccessor",
+		"AbstractContainerScreenMixin",
+		"CameraMixin",
+		"ClientClockManagerMixin",
+		"ClientPacketListenerMixin",
+		"FireworkRocketEntityAccessor",
+		"FogRendererMixin",
+		"GameRendererMixin",
+		"ItemInHandRendererMixin",
+		"LivingEntityMixin",
+		"MultiPlayerGameModeMixin",
+		"ParticlesRenderStateMixin",
+		"ScreenEffectRendererMixin",
+		"StringDecomposerMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

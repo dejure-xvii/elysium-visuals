@@ -1,0 +1,15 @@
+﻿{
+	"schemaVersion": 1,
+	"id": "elysium-visuals-test",
+	"version": "1.0.0",
+	"name": "Elysium Visuals Tests",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"dev.elysium.visuals.test.ClickGuiGameTest"
+		]
+	},
+	"depends": {
+		"elysium-visuals": "*"
+	}
+}

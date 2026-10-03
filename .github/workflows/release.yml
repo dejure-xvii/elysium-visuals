@@ -1,0 +1,40 @@
+# Builds the mod and publishes a GitHub release whenever a tag like v1.2.3 is pushed.
+# The mod version is taken from the tag name (v1.2.3 -> 1.2.3).
+
+name: release
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+      - name: setup jdk
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+      - name: build
+        run: ./gradlew build -Pversion="${GITHUB_REF_NAME#v}"
+      - name: publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" build/libs/*.jar --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" build/libs/*.jar \
+              --title "Elysium Visuals ${GITHUB_REF_NAME}" \
+              --generate-notes
+          fi

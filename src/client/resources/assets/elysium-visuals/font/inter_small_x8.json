@@ -1,0 +1,15 @@
+{
+	"providers": [
+		{
+			"type": "ttf",
+			"file": "elysium-visuals:inter-semibold.ttf",
+			"size": 7.0,
+			"oversample": 8.0,
+			"shift": [0.0, 0.0]
+		},
+		{
+			"type": "reference",
+			"id": "minecraft:default"
+		}
+	]
+}
