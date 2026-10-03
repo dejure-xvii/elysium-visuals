@@ -4,9 +4,7 @@
 [![release](https://img.shields.io/github/v/release/kirillyalovenko463-hash/elysium-visuals)](https://github.com/kirillyalovenko463-hash/elysium-visuals/releases/latest)
 
 Клиентский визуальный мод для Minecraft на **Fabric**: ClickGUI с темами (включая Liquid Glass),
-настраиваемый HUD и десятки визуальных и удобных модулей. Мод работает только на клиенте —
-на сервер ставить не нужно.
-
+настраиваемый HUD и десятки визуальных и удобных модулей.  
 ## Скриншоты
 
 > Скриншоты-заглушки — скоро будут заменены настоящими.
