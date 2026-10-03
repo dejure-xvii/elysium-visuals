@@ -37,19 +37,7 @@ import dev.elysium.visuals.client.module.impl.render.Trail;
 import dev.elysium.visuals.client.module.impl.render.ViewModel;
 import dev.elysium.visuals.client.module.impl.render.Watermark;
 import dev.elysium.visuals.client.module.impl.render.WorldInfo;
-import dev.elysium.visuals.client.module.impl.utils.AutoAccept;
-import dev.elysium.visuals.client.module.impl.utils.ClientSounds;
-import dev.elysium.visuals.client.module.impl.utils.Coordinates;
-import dev.elysium.visuals.client.module.impl.utils.DeathPoint;
-import dev.elysium.visuals.client.module.impl.utils.FakePlayer;
-import dev.elysium.visuals.client.module.impl.utils.FriendsModule;
-import dev.elysium.visuals.client.module.impl.utils.ItemScroller;
-import dev.elysium.visuals.client.module.impl.utils.NameProtect;
-import dev.elysium.visuals.client.module.impl.utils.NotificationsModule;
-import dev.elysium.visuals.client.module.impl.utils.ScoreboardHealth;
-import dev.elysium.visuals.client.module.impl.utils.ServerInfo;
-import dev.elysium.visuals.client.module.impl.utils.Speedometer;
-import dev.elysium.visuals.client.module.impl.utils.UseTracker;
+import dev.elysium.visuals.client.module.impl.utils.*;
 import dev.elysium.visuals.client.module.setting.Setting;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
@@ -113,6 +101,9 @@ public final class ModuleManager {
 		register(new NameProtect());
 		register(new AutoAccept());
 		register(new ItemScroller());
+		register(new ClickPearl());
+		register(new ClickWeb());
+		register(new ClickFirework());
 		register(new ScoreboardHealth());
 		register(new ClientSounds());
 		register(new NotificationsModule());
@@ -170,7 +161,13 @@ public final class ModuleManager {
 			if (m.bind() != Module.NO_KEY) {
 				boolean down = canUseBinds && InputConstants.isKeyDown(mc.getWindow(), m.bind());
 				if (m.updateBindState(down)) {
-					m.toggle();
+					if (m.bindIsAction()) {
+						if (m.isEnabled()) {
+							m.onBindPressed(mc);
+						}
+					} else {
+						m.toggle();
+					}
 				}
 			}
 			if (m.isEnabled()) {

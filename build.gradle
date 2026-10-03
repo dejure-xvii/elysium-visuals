@@ -90,3 +90,14 @@ publishing {
 		// retrieving dependencies.
 	}
 }
+
+// Автокопирование готового jar в папку mods лаунчера после сборки.
+tasks.register('deployMod', Copy) {
+	dependsOn tasks.named('jar')
+	from tasks.named('jar').flatMap { it.archiveFile }
+	into "${System.getenv('APPDATA')}/.minecraft/mods"
+}
+
+tasks.named('build') {
+	finalizedBy 'deployMod'
+}

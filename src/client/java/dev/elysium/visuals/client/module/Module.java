@@ -113,6 +113,15 @@ public abstract class Module {
 		return false;
 	}
 
+	/** True: the bind calls onBindPressed() (only while enabled) instead of toggling the module. */
+	protected boolean bindIsAction() {
+		return false;
+	}
+
+	/** Called when the bind is pressed and bindIsAction() is true. */
+	protected void onBindPressed(Minecraft mc) {
+	}
+
 	// --- State --------------------------------------------------------------
 
 	public boolean isEnabled() {
