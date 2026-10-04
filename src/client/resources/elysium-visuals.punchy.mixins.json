@@ -1,0 +1,13 @@
+{
+	"required": false,
+	"minVersion": "0.8",
+	"package": "dev.elysium.visuals.client.mixin.compat",
+	"plugin": "dev.elysium.visuals.client.mixin.compat.PunchyMixinPlugin",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"PunchyArmRendererMixin"
+	],
+	"injectors": {
+		"defaultRequire": 0
+	}
+}

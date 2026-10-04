@@ -24,6 +24,10 @@
 		{
 			"config": "elysium-visuals.client.mixins.json",
 			"environment": "client"
+		},
+		{
+			"config": "elysium-visuals.punchy.mixins.json",
+			"environment": "client"
 		}
 	],
 	"depends": {
@@ -31,5 +35,8 @@
 		"minecraft": "~26.2",
 		"java": ">=25",
 		"fabric-api": "*"
+	},
+	"suggests": {
+		"punchy": "*"
 	}
 }

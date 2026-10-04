@@ -6,9 +6,13 @@
 	"environment": "client",
 	"entrypoints": {
 		"fabric-client-gametest": [
-			"dev.elysium.visuals.test.ClickGuiGameTest"
+			"dev.elysium.visuals.test.ClickGuiGameTest",
+			"dev.elysium.visuals.test.PunchyGameTest"
 		]
 	},
+	"mixins": [
+		"elysium-visuals-test.mixins.json"
+	],
 	"depends": {
 		"elysium-visuals": "*"
 	}

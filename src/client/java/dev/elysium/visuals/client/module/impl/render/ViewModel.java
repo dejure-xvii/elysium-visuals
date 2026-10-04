@@ -5,6 +5,7 @@ import dev.elysium.visuals.client.module.Category;
 import dev.elysium.visuals.client.module.Module;
 import dev.elysium.visuals.client.module.ModuleManager;
 import dev.elysium.visuals.client.module.setting.NumberSetting;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.HumanoidArm;
 
 /** Moves and scales the first-person hands, separately for each arm. */
@@ -43,6 +44,30 @@ public class ViewModel extends Module {
 		if (m != null) {
 			float s = (arm == HumanoidArm.RIGHT ? m.rightScale : m.leftScale).floatValue();
 			pose.scale(s, s, s);
+		}
+	}
+
+	/**
+	 * Punchy draws both arms as one model, so the main arm's offset and size are
+	 * applied to the whole model (scaled around where that hand sits on screen).
+	 * Always pushes a pose; the caller pops it after Punchy has rendered.
+	 */
+	public static void pushForPunchy(PoseStack pose, LocalPlayer player) {
+		pose.pushPose();
+		ViewModel m = active();
+		if (m == null || player == null) {
+			return;
+		}
+		boolean right = player.getMainArm() == HumanoidArm.RIGHT;
+		pose.translate((right ? m.rightX : m.leftX).floatValue(), (right ? m.rightY : m.leftY).floatValue(),
+				(right ? m.rightZ : m.leftZ).floatValue());
+		float s = (right ? m.rightScale : m.leftScale).floatValue();
+		if (s != 1) {
+			// Vanilla first-person hand position; scaling around the camera would change nothing on screen.
+			float hx = right ? 0.56F : -0.56F;
+			pose.translate(hx, -0.52F, -0.72F);
+			pose.scale(s, s, s);
+			pose.translate(-hx, 0.52F, 0.72F);
 		}
 	}
 }

@@ -9,6 +9,19 @@ repositories {
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
+
+	// Official Modrinth Maven: compile against Punchy without shipping or committing its jar.
+	exclusiveContent {
+		forRepository {
+			maven {
+				name = "Modrinth"
+				url = "https://api.modrinth.com/maven"
+			}
+		}
+		filter {
+			includeGroup "maven.modrinth"
+		}
+	}
 }
 
 loom {
@@ -40,6 +53,13 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Punchy! is optional at runtime (the launcher installs it); only compiled against.
+	compileOnly "maven.modrinth:punchy-fpa:${project.punchy_version}"
+	// Client game tests run with Punchy; `-PnoPunchy` checks the game without it.
+	if (!project.hasProperty("noPunchy")) {
+		gametestRuntimeOnly "maven.modrinth:punchy-fpa:${project.punchy_version}"
+	}
 }
 
 processResources {
@@ -92,15 +112,16 @@ publishing {
 }
 
 // Автокопирование готового jar в папку mods лаунчера Elysium после сборки.
-// Старые jar этого мода в папке удаляются, чтобы не было дублей.
-// Автокопирование готового jar в папку mods лаунчера Elysium после сборки.
-// Старые jar этого мода удаляются, чтобы не было дублей.
+// Старые jar этого мода удаляются, чтобы не было дублей. На CI (нет %APPDATA%) пропускается.
 tasks.register('deployMod') {
 	def jarTask = tasks.named('jar')
 	def jarFile = jarTask.flatMap { it.archiveFile }
-	def modsPath = "${System.getenv('APPDATA')}/.elysium/mods"
+	def appData = System.getenv('APPDATA')
+	def modsPath = "${appData}/.elysium/mods"
 
 	dependsOn jarTask
+
+	onlyIf { appData != null }
 
 	doLast {
 		def modsDir = new File(modsPath)

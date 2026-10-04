@@ -11,6 +11,7 @@
 		"ClientPacketListenerMixin",
 		"FireworkRocketEntityAccessor",
 		"FogRendererMixin",
+		"ItemInHandRendererAccessor",
 		"GameRendererMixin",
 		"ItemInHandRendererMixin",
 		"LivingEntityMixin",

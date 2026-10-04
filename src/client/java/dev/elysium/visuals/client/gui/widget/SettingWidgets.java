@@ -1,5 +1,6 @@
 package dev.elysium.visuals.client.gui.widget;
 
+import dev.elysium.visuals.client.module.setting.ActionSetting;
 import dev.elysium.visuals.client.module.setting.BooleanSetting;
 import dev.elysium.visuals.client.module.setting.ColorSetting;
 import dev.elysium.visuals.client.module.setting.ModeSetting;
@@ -16,6 +17,7 @@ public final class SettingWidgets {
 
 	public static UiElement create(Setting<?> setting) {
 		return switch (setting) {
+			case ActionSetting a -> new ThemedButton(a::label, a::run).rowHeight(18);
 			case BooleanSetting b -> new ToggleSwitch(b.name(), b::isOn, b::set);
 			case NumberSetting n -> new SliderWidget(n);
 			case ColorSetting c -> new ColorSettingWidget(c);

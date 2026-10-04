@@ -2,6 +2,8 @@ package dev.elysium.visuals.client.notify;
 
 import dev.elysium.visuals.client.module.ModuleManager;
 import dev.elysium.visuals.client.module.impl.utils.NotificationsModule;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -38,6 +40,19 @@ public final class Notifications {
 	/** Same with an item icon. */
 	public static void module(String title, String text, ItemStack icon) {
 		push(Type.MESSAGES, Tone.ACCENT, title, text, icon);
+	}
+
+	/** A message the player has to see: a toast, or the action bar when module toasts are off. */
+	public static void alert(String title, String text) {
+		NotificationsModule m = module();
+		if (m != null && m.shows(Type.MESSAGES)) {
+			m.push(new Toast(title, text, ItemStack.EMPTY, Tone.ACCENT));
+			return;
+		}
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player != null) {
+			mc.player.sendOverlayMessage(Component.literal(title + ": " + text));
+		}
 	}
 
 	public static void toggled(String moduleName, boolean on) {
