@@ -24,6 +24,10 @@
 - **Player**: AutoSprint, AutoTool, Armor HUD, Item Counter, Health Alert, NoFriendDamage.
 - **Farm**: Loot Tracker, Session Timer, Tool Guard, Inventory Full.
 - **Utils**: друзья, уведомления, NameProtect, Death Point, ItemScroller, AutoAccept, FakePlayer и др.
+- **Главное меню** в стиле лаунчера: 360°-панорамы (Лес, Река, Горы, Ночное небо, Закат), анимированный градиент
+  и свои PNG/JPG из `config/elysium-visuals/backgrounds`. Модуль MainMenu возвращает ванильное меню.
+- **Аккаунты**: офлайн и Microsoft, смена аккаунта без перезапуска, общий список с Elysium Launcher.
+- **Мини-игра «Руда 2048»** в главном меню.
 - **Конфиги** — сохранение и загрузка нескольких профилей настроек.
 - **Punchy!** (необязательно): режим «Punchy» в SwingAnimation отдаёт анимации рук от первого лица моду
   [Punchy!](https://modrinth.com/mod/punchy-fpa) — его ставит Elysium Launcher. В других режимах и при выключенном
@@ -85,3 +89,4 @@ git push origin v1.0.1
 ## Лицензия
 
 [CC0 1.0](LICENSE). Шрифт Inter распространяется под [SIL Open Font License](src/client/resources/assets/elysium-visuals/font/inter-ofl.txt).
+Панорамы главного меню — фото с [Poly Haven](https://polyhaven.com) (CC0).

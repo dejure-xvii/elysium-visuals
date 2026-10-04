@@ -26,6 +26,7 @@ public class ElysiumVisualsClient implements ClientModInitializer {
 		HudManager.get().init();
 		ConfigManager.load();
 		Keybinds.register();
+		dev.elysium.visuals.client.alt.AltPauseButton.register();
 		CommandManager.get().init();
 		// Runs while SwingAnimation is off too: it decides whether Punchy animates the hands.
 		ClientTickEvents.END_CLIENT_TICK.register(SwingAnimation::syncHands);

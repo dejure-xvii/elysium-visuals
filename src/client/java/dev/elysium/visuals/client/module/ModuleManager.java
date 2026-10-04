@@ -114,6 +114,7 @@ public final class ModuleManager {
 		register(new InventoryAlert());
 		register(new ToolGuard());
 		register(new LootTracker());
+		register(new MainMenu());
 	}
 
 	public void init() {
