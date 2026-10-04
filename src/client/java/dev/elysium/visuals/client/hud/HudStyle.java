@@ -6,9 +6,11 @@ import dev.elysium.visuals.client.util.ColorUtil;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
- * Shared look of HUD elements, matching the launcher: glass cards on a dark
+ * Look of the HUD elements of other modules (armor, loot, timers…) and chat
+ * completion, matching the launcher. The Interface module has its own styles
+ * ({@code hud.style}). Glass cards on a dark
  * base (readable over any sky), a header with a small icon and an upper-case
- * letter-spaced caption ("MINECRAFT 26.2 · FABRIC"), status dots and thin
+ * letter-spaced caption ("MINECRAFT 26.2 · FABRIC") and thin
  * gradient bars. All colors come from the active theme.
  */
 public final class HudStyle {
@@ -73,11 +75,6 @@ public final class HudStyle {
 
 	public static int titleWidth(String text, String right) {
 		return headerWidth(text, right);
-	}
-
-	/** Status dot like the launcher's: green = on/online, accent = active. */
-	public static void dot(GuiGraphicsExtractor g, float cx, float cy, int color) {
-		RenderUtil.glowDot(g, cx, cy, 4, color);
 	}
 
 	/** Thin rounded bar; {@code fraction} 0..1. The accent gets the launcher's lilac → violet gradient. */

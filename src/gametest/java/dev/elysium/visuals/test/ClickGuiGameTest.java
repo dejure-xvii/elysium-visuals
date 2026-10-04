@@ -258,13 +258,17 @@ public class ClickGuiGameTest implements FabricClientGameTest {
 		context.takeScreenshot("cmd-panic");
 	}
 
-	private static ModeSetting targetStyle() {
+	private static Setting<?> watermarkSetting(String id) {
 		for (Setting<?> s : ModuleManager.get().find(Watermark.class).settings()) {
-			if (s.id().equals("target_style")) {
-				return (ModeSetting) s;
+			if (s.id().equals(id)) {
+				return s;
 			}
 		}
-		throw new AssertionError("Watermark has no target_style setting");
+		throw new AssertionError("Interface has no " + id + " setting");
+	}
+
+	private static ModeSetting interfaceStyle() {
+		return (ModeSetting) watermarkSetting("style");
 	}
 
 	private static void chat(ClientGameTestContext context, String message) {
@@ -378,10 +382,16 @@ public class ClickGuiGameTest implements FabricClientGameTest {
 		context.runOnClient(mc -> {
 			ModuleManager.get().modules().forEach(m -> m.setEnabled(true));
 			Watermark watermark = ModuleManager.get().find(Watermark.class);
-			MultiSelectSetting elements = (MultiSelectSetting) watermark.settings().get(0);
+			MultiSelectSetting elements = (MultiSelectSetting) watermarkSetting("elements");
 			Set<String> all = new HashSet<>();
 			elements.options().forEach(o -> all.add(o.id()));
 			elements.set(all);
+			MultiSelectSetting info = (MultiSelectSetting) watermarkSetting("info");
+			Set<String> allInfo = new HashSet<>();
+			info.options().forEach(o -> allInfo.add(o.id()));
+			info.set(allInfo);
+			// A bound module, so the binds block has a row.
+			ModuleManager.get().find(Watermark.class).setBind(GLFW.GLFW_KEY_H);
 			FriendsModule friends = ModuleManager.get().find(FriendsModule.class);
 			((StringListSetting) friends.settings().get(0)).add("Notch");
 			// Cooldown on the client is enough for the HUD.
@@ -406,14 +416,15 @@ public class ClickGuiGameTest implements FabricClientGameTest {
 		context.takeScreenshot("hud-glass");
 		context.runOnClient(mc -> ThemeManager.get().select(Themes.DEFAULT));
 
-		// Every target style; the zombie gets some gear and absorption, and is "hit" again so it stays shown.
+		// Every Interface style with all elements; the zombie gets some gear and absorption,
+		// and is "hit" again so the target stays shown.
 		world.getServer().runCommand("item replace entity @e[type=minecraft:zombie,limit=1] armor.head with minecraft:diamond_helmet");
 		world.getServer().runCommand("item replace entity @e[type=minecraft:zombie,limit=1] armor.chest with minecraft:iron_chestplate");
 		world.getServer().runCommand("item replace entity @e[type=minecraft:zombie,limit=1] weapon.mainhand with minecraft:diamond_sword[enchantments={sharpness:3}]");
 		world.getServer().runCommand("effect give @e[type=minecraft:zombie] minecraft:absorption 60 1");
-		for (String style : List.of("compact", "minimal", "classic", "capsule", "card")) {
+		for (String style : List.of("minimal", "plates", "panels", "cards")) {
 			context.runOnClient(mc -> {
-				targetStyle().set(style);
+				interfaceStyle().set(style);
 				for (Entity e : mc.level.entitiesForRendering()) {
 					if (e instanceof Zombie z) {
 						TargetTracker.onHit(z);
@@ -421,10 +432,20 @@ public class ClickGuiGameTest implements FabricClientGameTest {
 				}
 			});
 			context.waitTicks(10);
-			if (!style.equals("card")) {
-				context.takeScreenshot("hud-target-" + style);
+			context.takeScreenshot("hud-style-" + style);
+			// Readability on the light and the glass theme.
+			for (Theme theme : List.of(Themes.LIGHT, Themes.LIQUID_GLASS)) {
+				context.runOnClient(mc -> ThemeManager.get().select(theme));
+				context.waitTicks(5);
+				context.takeScreenshot("hud-style-" + style + "-" + theme.id());
 			}
+			context.runOnClient(mc -> ThemeManager.get().select(Themes.DEFAULT));
 		}
+		// An unknown style id (e.g. from an old config) falls back to the default.
+		context.runOnClient(mc -> interfaceStyle().set("glass"));
+		assertTrue(context.computeOnClient(mc -> ModuleManager.get().find(Watermark.class).style().id().equals("cards")),
+				"Unknown Interface style must fall back to Карточки");
+		context.runOnClient(mc -> ModuleManager.get().find(Watermark.class).setBind(Module.NO_KEY));
 
 		// F1 hides everything.
 		context.getInput().pressKey(GLFW.GLFW_KEY_F1);

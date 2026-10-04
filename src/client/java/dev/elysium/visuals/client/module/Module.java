@@ -118,6 +118,11 @@ public abstract class Module {
 		return false;
 	}
 
+	/** True if the bind toggles the module; false if it runs an action (see {@link #bindIsAction()}). */
+	public boolean bindTogglesModule() {
+		return !bindIsAction();
+	}
+
 	/** Called when the bind is pressed and bindIsAction() is true. */
 	protected void onBindPressed(Minecraft mc) {
 	}

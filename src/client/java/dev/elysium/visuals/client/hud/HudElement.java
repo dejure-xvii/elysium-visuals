@@ -38,8 +38,10 @@ public abstract class HudElement {
 	protected int y;
 	protected int width;
 	protected int height;
-	final SmoothValue visibility = new SmoothValue(0, 10f);
+	/** Fade in/out of the whole element (≈ 200 ms). */
+	final SmoothValue visibility = new SmoothValue(0, 14f);
 	private final SmoothValue animatedWidth = new SmoothValue(-1, 16f);
+	private final SmoothValue animatedHeight = new SmoothValue(-1, 16f);
 
 	protected HudElement(String id, String name, Anchor anchor) {
 		this.id = id;
@@ -85,6 +87,14 @@ public abstract class HudElement {
 			animatedWidth.set(target);
 		}
 		return Math.round(animatedWidth.update(target));
+	}
+
+	/** Eases height changes (e.g. switching the Interface style) instead of jumping. */
+	protected int animateHeight(int target) {
+		if (animatedHeight.get() < 0) {
+			animatedHeight.set(target);
+		}
+		return Math.round(animatedHeight.update(target));
 	}
 
 	/** Whether there is real data to show; when false the element is hidden outside the editor. */

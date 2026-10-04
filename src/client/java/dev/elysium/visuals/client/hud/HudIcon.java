@@ -105,6 +105,27 @@ public enum HudIcon {
 			RenderUtil.stroke(g, cx, cy + 0.8f, cx + 1.4f, cy - 0.7f, 1f, color);
 		}
 	},
+	/** Four dots in a diamond: a module. */
+	MODULE {
+		@Override
+		public void draw(GuiGraphicsExtractor g, float cx, float cy, int color) {
+			float d = 2.6f, r = 1.25f;
+			RenderUtil.roundedRect(g, cx - r, cy - d - r, r * 2, r * 2, r, color);
+			RenderUtil.roundedRect(g, cx - r, cy + d - r, r * 2, r * 2, r, color);
+			RenderUtil.roundedRect(g, cx - d - r, cy - r, r * 2, r * 2, r, color);
+			RenderUtil.roundedRect(g, cx + d - r, cy - r, r * 2, r * 2, r, color);
+		}
+	},
+	/** Double chevron: speed. */
+	SPEED {
+		@Override
+		public void draw(GuiGraphicsExtractor g, float cx, float cy, int color) {
+			for (float ox : new float[]{-2.4f, 0.8f}) {
+				RenderUtil.stroke(g, cx + ox, cy - 3.2f, cx + ox + 2.4f, cy, 1.1f, color);
+				RenderUtil.stroke(g, cx + ox + 2.4f, cy, cx + ox, cy + 3.2f, 1.1f, color);
+			}
+		}
+	},
 	/** Ring with a dot: target. */
 	TARGET {
 		@Override
