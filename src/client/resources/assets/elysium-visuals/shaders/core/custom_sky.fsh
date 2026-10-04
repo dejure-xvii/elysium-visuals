@@ -11,6 +11,8 @@ layout(std140) uniform SkyInfo {
     vec4 ColorB;
     // x: mode, y: theme tint 0..1, z: 1 if NDC depth is 0..1, w: daylight 0..1
     vec4 Extra;
+    // x: 1 while volumetric 3D clouds are drawn (no flat clouds then)
+    vec4 Flags;
 };
 
 in vec2 texCoord;
@@ -152,8 +154,8 @@ vec3 summer(vec3 dir, float t, float s, float day) {
     // Warm glow near the horizon at dusk and dawn.
     float dusk = 1.0 - abs(day * 2.0 - 1.0);
     sky += vec3(1.0, 0.45, 0.2) * dusk * exp(-max(dir.y, 0.0) * 6.0) * 0.5;
-    // Clouds by day, stars by night.
-    if (dir.y > 0.0) {
+    // Clouds by day (unless 3D clouds are on), stars by night.
+    if (dir.y > 0.0 && Flags.x < 0.5) {
         vec2 p = dir.xz / (dir.y + 0.2) * 1.2 * s + vec2(t * 0.02, 0.0);
         float c = smoothstep(0.5, 0.8, fbm(p * 1.5));
         sky = mix(sky, mix(vec3(0.3, 0.32, 0.4), vec3(1.0), day), c * 0.8 * smoothstep(0.0, 0.2, dir.y));

@@ -9,14 +9,12 @@ import dev.elysium.visuals.ElysiumVisuals;
 import dev.elysium.visuals.client.gui.render.RenderUtil;
 import dev.elysium.visuals.client.module.ModuleManager;
 import dev.elysium.visuals.client.module.impl.render.Watermark;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.GameRenderer;
 import org.joml.Matrix3x2f;
 import org.joml.Vector2f;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,10 +40,6 @@ public final class HudBlur {
 	private static final List<float[]> rects = new ArrayList<>();
 	private static final TextureTarget[] levels = new TextureTarget[MAX_LEVELS];
 	private static boolean failed;
-
-	private static Method irisInstance;
-	private static Method irisShaderPackInUse;
-	private static boolean irisLookedUp;
 
 	private HudBlur() {
 	}
@@ -83,26 +77,7 @@ public final class HudBlur {
 	}
 
 	private static boolean irisShadersOn() {
-		if (!irisLookedUp) {
-			irisLookedUp = true;
-			if (FabricLoader.getInstance().isModLoaded("iris")) {
-				try {
-					Class<?> api = Class.forName("net.irisshaders.iris.api.v0.IrisApi");
-					irisInstance = api.getMethod("getInstance");
-					irisShaderPackInUse = api.getMethod("isShaderPackInUse");
-				} catch (ReflectiveOperationException | LinkageError e) {
-					ElysiumVisuals.LOGGER.warn("Iris API not found; HUD blur stays on with shaders", e);
-				}
-			}
-		}
-		if (irisShaderPackInUse == null) {
-			return false;
-		}
-		try {
-			return (boolean) irisShaderPackInUse.invoke(irisInstance.invoke(null));
-		} catch (ReflectiveOperationException | RuntimeException e) {
-			return true; // can't tell: be safe
-		}
+		return IrisCompat.shaderPackInUse();
 	}
 
 	/** Called (mixin) right before the GUI is rendered; consumes this frame's mask. */

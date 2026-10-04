@@ -9,6 +9,7 @@ import dev.elysium.visuals.client.module.ModuleManager;
 import dev.elysium.visuals.client.module.setting.BooleanSetting;
 import dev.elysium.visuals.client.module.setting.ModeSetting;
 import dev.elysium.visuals.client.module.setting.NumberSetting;
+import dev.elysium.visuals.client.render.CloudRenderer3D;
 import dev.elysium.visuals.client.render.FullscreenPass;
 import dev.elysium.visuals.client.render.ThemeColors;
 import dev.elysium.visuals.client.render.WorldEffects;
@@ -26,7 +27,8 @@ import static dev.elysium.visuals.client.module.setting.MultiSelectSetting.optio
 /**
  * Shader sky: drawn over the pixels where the world left the sky visible. The
  * view direction comes from the camera's rotation and FOV, so the sky stays in
- * place while you look around.
+ * place while you look around. Optional volumetric 3D clouds
+ * ({@link CloudRenderer3D}) replace the vanilla ones in any mode.
  */
 public class CustomSky extends Module {
 	private static final List<String> MODES = List.of("aurora", "sakura", "plasma", "plasma2", "northern", "night", "summer", "caustics");
@@ -49,6 +51,20 @@ public class CustomSky extends Module {
 	private final NumberSetting opacity = add(new NumberSetting("opacity", "Непрозрачность", 1, 0.05, 1, 0.05));
 	private final BooleanSetting themed = add(new BooleanSetting("themed", "В цвет темы", false));
 
+	// Volumetric clouds (any mode).
+	private final BooleanSetting clouds3d = add(new BooleanSetting("clouds_3d", "3D облака", false));
+	private final NumberSetting cloudHeight = add(new NumberSetting("cloud_height", "Высота облаков", 192, 128, 320, 4, " бл."))
+			.visibleWhen(clouds3d::isOn);
+	private final NumberSetting cloudCoverage = add(new NumberSetting("cloud_coverage", "Покрытие неба", 0.5, 0.05, 1, 0.05))
+			.visibleWhen(clouds3d::isOn);
+	private final NumberSetting cloudWind = add(new NumberSetting("cloud_wind", "Скорость ветра", 1, 0, 3, 0.1, "x"))
+			.visibleWhen(clouds3d::isOn);
+	private final ModeSetting cloudQuality = add(new ModeSetting("cloud_quality", "Качество облаков",
+			List.of(option("low", "Низкое"), option("medium", "Среднее"), option("high", "Высокое")), "medium"))
+			.visibleWhen(clouds3d::isOn);
+	private final NumberSetting cloudDistance = add(new NumberSetting("cloud_distance", "Дальность облаков", 1024, 256, 2048, 64, " бл."))
+			.visibleWhen(clouds3d::isOn);
+
 	private final Matrix4f invViewProj = new Matrix4f();
 	private long startNs = System.nanoTime();
 
@@ -58,7 +74,34 @@ public class CustomSky extends Module {
 
 	public static void init() {
 		pass = new FullscreenPass("custom_sky", "core/custom_sky", List.of("DepthSampler"), "SkyInfo",
-				64 + 16 * 4, BlendFunction.TRANSLUCENT);
+				64 + 16 * 5, BlendFunction.TRANSLUCENT);
+	}
+
+	// --- 3D clouds settings ---------------------------------------------------------
+
+	public boolean clouds3d() {
+		return clouds3d.isOn();
+	}
+
+	public double cloudHeight() {
+		return cloudHeight.get();
+	}
+
+	public double cloudCoverage() {
+		return cloudCoverage.get();
+	}
+
+	public double cloudWind() {
+		return cloudWind.get();
+	}
+
+	/** 0 = low, 1 = medium, 2 = high. */
+	public int cloudQuality() {
+		return cloudQuality.is("low") ? 0 : cloudQuality.is("high") ? 2 : 1;
+	}
+
+	public double cloudDistance() {
+		return cloudDistance.get();
 	}
 
 	public static void process(GameRenderer renderer) {
@@ -71,7 +114,7 @@ public class CustomSky extends Module {
 	}
 
 	/** 1 at noon, 0 at midnight, smooth in between (follows Ambience's time too). */
-	private static float daylight() {
+	public static float daylight() {
 		Minecraft mc = Minecraft.getInstance();
 		long t = Math.floorMod(mc.level.getOverworldClockTime(), 24000L);
 		double angle = (t - 6000) / 24000.0 * Math.PI * 2; // 0 at noon
@@ -95,6 +138,8 @@ public class CustomSky extends Module {
 						.putVec4(time, scale.floatValue(), intensity.floatValue(), opacity.floatValue())
 						.putVec4(ColorUtil.red(a) / 255f, ColorUtil.green(a) / 255f, ColorUtil.blue(a) / 255f, 1f)
 						.putVec4(ColorUtil.red(b) / 255f, ColorUtil.green(b) / 255f, ColorUtil.blue(b) / 255f, 1f)
-						.putVec4(modeIndex, themed.isOn() ? 0.85f : 0f, WorldEffects.zZeroToOne(), day));
+						.putVec4(modeIndex, themed.isOn() ? 0.85f : 0f, WorldEffects.zZeroToOne(), day)
+						// The flat clouds of the summer sky make way for the 3D ones.
+						.putVec4(CloudRenderer3D.active() ? 1f : 0f, 0f, 0f, 0f));
 	}
 }
