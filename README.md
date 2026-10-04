@@ -25,6 +25,9 @@
 - **Farm**: Loot Tracker, Session Timer, Tool Guard, Inventory Full.
 - **Utils**: друзья, уведомления, NameProtect, Death Point, ItemScroller, AutoAccept, FakePlayer и др.
 - **Конфиги** — сохранение и загрузка нескольких профилей настроек.
+- **Punchy!** (необязательно): режим «Punchy» в SwingAnimation отдаёт анимации рук от первого лица моду
+  [Punchy!](https://modrinth.com/mod/punchy-fpa) — его ставит Elysium Launcher. В других режимах и при выключенном
+  модуле Punchy отключается, ViewModel работает поверх него.
 
 ## Установка
 
@@ -36,6 +39,7 @@
    - macOS: `~/Library/Application Support/minecraft/mods`
    - Linux: `~/.minecraft/mods`
 4. Запустите игру с профилем Fabric. Нужна **Java 25+**.
+5. Необязательно: [Punchy!](https://modrinth.com/mod/punchy-fpa) для режима «Punchy» в SwingAnimation.
 
 ## Использование
 
