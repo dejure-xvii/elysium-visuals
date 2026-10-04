@@ -30,11 +30,21 @@ public abstract class ListElement extends HudElement {
 	/** Example rows for the HUD editor when there is no real data. */
 	protected abstract List<HudData.Row> sample();
 
+	/** False for blocks that make no sense as a lone header (e.g. no death point yet). */
+	protected boolean headerWhenEmpty() {
+		return true;
+	}
+
 	@Override
 	public boolean hasContent() {
 		// Called once per frame before measure(); the rows are reused there.
 		current = collect();
-		return !current.isEmpty() || InterfaceStyle.current().keepsEmptyHeader();
+		return !current.isEmpty();
+	}
+
+	@Override
+	public boolean showsWhenEmpty() {
+		return headerWhenEmpty() && InterfaceStyle.current().keepsEmptyHeader();
 	}
 
 	@Override
@@ -42,7 +52,7 @@ public abstract class ListElement extends HudElement {
 		Skin skin = InterfaceStyle.current();
 		if (preview && current.isEmpty()) {
 			rows.update(sample());
-		} else if (!current.isEmpty() || skin.keepsEmptyHeader()) {
+		} else if (!current.isEmpty() || showsWhenEmpty()) {
 			rows.update(current);
 		}
 		// Otherwise the block is fading out: keep its last rows until it is gone.

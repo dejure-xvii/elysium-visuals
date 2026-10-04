@@ -128,7 +128,7 @@ public final class HudManager {
 
 		for (HudElement e : elements) {
 			boolean content = e.hasContent();
-			boolean show = e.isEnabled() && (editing || content);
+			boolean show = e.isEnabled() && (editing || content || e.showsWhenEmpty());
 			float v = e.visibility.update(show ? 1f : 0f);
 			if (v < 0.01f) {
 				continue;
@@ -140,51 +140,66 @@ public final class HudManager {
 				e.placeFixed(sw, sh);
 			} else if (e != dragging) {
 				if (e.hasCustomPosition()) {
-					e.x = Math.round(e.fx * Math.max(0, sw - e.width));
-					e.y = Math.round(e.fy * Math.max(0, sh - e.height));
+					e.x = Math.round(e.fx * Math.max(0, sw - e.width()));
+					e.y = Math.round(e.fy * Math.max(0, sh - e.height()));
 				} else {
 					switch (e.anchor()) {
 						case TOP_LEFT -> {
-							if (leftY > MARGIN && leftY + e.height > sh - MARGIN) {
+							if (leftY > MARGIN && leftY + e.height() > sh - MARGIN) {
 								leftX += leftColumnW + GAP;
 								leftY = MARGIN;
 								leftColumnW = 0;
 							}
 							e.x = leftX;
 							e.y = Math.round(leftY);
-							leftY += (e.height + GAP) * v;
-							leftColumnW = Math.max(leftColumnW, e.width);
+							leftY += (e.height() + GAP) * v;
+							leftColumnW = Math.max(leftColumnW, e.width());
 						}
 						case BOTTOM_RIGHT -> {
-							e.x = sw - MARGIN - e.width;
-							e.y = Math.round(rightY - e.height);
+							e.x = sw - MARGIN - e.width();
+							e.y = Math.round(rightY - e.height());
 							// Keep clear of the hotbar, hearts and hunger in the bottom center.
-							if (e.x < sw / 2 + 100 && e.y + e.height > sh - 50) {
-								e.y = sh - 50 - e.height;
+							if (e.x < sw / 2 + 100 && e.y + e.height() > sh - 50) {
+								e.y = sh - 50 - e.height();
 								rightY = e.y;
 							}
-							rightY -= (e.height + GAP) * v;
+							rightY -= (e.height() + GAP) * v;
 						}
 						case CROSSHAIR -> {
 							// Centered under the crosshair, below the notifications and above the hearts/hunger rows.
-							e.x = (sw - e.width) / 2;
-							e.y = Math.max(sh / 2 + 16, Math.min(sh / 2 + 70, sh - 52 - e.height));
+							e.x = (sw - e.width()) / 2;
+							e.y = Math.max(sh / 2 + 16, Math.min(sh / 2 + 70, sh - 52 - e.height()));
 						}
 					}
 				}
-				e.x = Math.max(0, Math.min(sw - e.width, e.x));
-				e.y = Math.max(0, Math.min(sh - e.height, e.y));
+				e.x = Math.max(0, Math.min(sw - e.width(), e.x));
+				e.y = Math.max(0, Math.min(sh - e.height(), e.y));
 			}
 
 			if (e == dragging) {
 				continue; // drawn last, on top of everything
 			}
-			RenderUtil.withAlpha(v, () -> e.draw(g, p, preview));
+			RenderUtil.withAlpha(v, () -> drawScaled(g, p, e, preview));
 		}
 		if (dragging != null && dragging.visibility.get() >= 0.01f) {
 			HudElement d = dragging;
-			RenderUtil.withAlpha(d.visibility.get(), () -> d.draw(g, p, editing && !d.hasContent()));
+			RenderUtil.withAlpha(d.visibility.get(), () -> drawScaled(g, p, d, editing && !d.hasContent()));
 		}
+	}
+
+	/** Draws the element at its user scale, growing from its top-left corner. */
+	private static void drawScaled(GuiGraphicsExtractor g, Palette p, HudElement e, boolean preview) {
+		float s = e.scale();
+		if (s == 1f) {
+			e.draw(g, p, preview);
+			return;
+		}
+		g.pose().pushMatrix();
+		g.pose().translate(e.x, e.y);
+		g.pose().scale(s, s);
+		g.pose().translate(-e.x, -e.y);
+		e.draw(g, p, preview);
+		g.pose().popMatrix();
 	}
 
 	/** Topmost visible element under the cursor (the one a click would grab). */
@@ -205,7 +220,7 @@ public final class HudManager {
 	public boolean overlapsAny(int x, int y, int w, int h) {
 		for (HudElement e : elements) {
 			if (e.isEnabled() && e.visibility.get() >= 0.01f
-					&& x < e.x + e.width + 4 && x + w > e.x - 4 && y < e.y + e.height + 4 && y + h > e.y - 4) {
+					&& x < e.x + e.width() + 4 && x + w > e.x - 4 && y < e.y + e.height() + 4 && y + h > e.y - 4) {
 				return true;
 			}
 		}
@@ -223,12 +238,12 @@ public final class HudManager {
 			}
 			boolean active = e == hovered;
 			int color = active ? p.accent() : ColorUtil.mulAlpha(p.text(), 0.35f);
-			RenderUtil.roundedOutline(g, e.x - 2, e.y - 2, e.width + 4, e.height + 4, 7, active ? 1f : 0,
+			RenderUtil.roundedOutline(g, e.x - 2, e.y - 2, e.width() + 4, e.height() + 4, 7, active ? 1f : 0,
 					ColorUtil.mulAlpha(color, v));
 			if (active) {
 				String label = e.name();
 				int lw = RenderUtil.width(label) + 10;
-				int ly = e.y - 16 >= 0 ? e.y - 16 : e.y + e.height + 4;
+				int ly = e.y - 16 >= 0 ? e.y - 16 : e.y + e.height() + 4;
 				RenderUtil.roundedRect(g, e.x - 2, ly, lw, 12, 4, p.accent());
 				RenderUtil.text(g, null, label, e.x + 3, ly + 3, 0xFFFFFFFF);
 			}
@@ -246,7 +261,7 @@ public final class HudManager {
 		if (hovered != null) {
 			float v = hovered.visibility.get();
 			int color = hovered == dragging ? p.accent() : ColorUtil.mulAlpha(p.accent(), 0.7f);
-			RenderUtil.roundedOutline(g, hovered.x - 2, hovered.y - 2, hovered.width + 4, hovered.height + 4, 7, 0,
+			RenderUtil.roundedOutline(g, hovered.x - 2, hovered.y - 2, hovered.width() + 4, hovered.height() + 4, 7, 0,
 					ColorUtil.mulAlpha(color, v));
 			g.requestCursor(CursorTypes.RESIZE_ALL);
 		}
@@ -310,15 +325,15 @@ public final class HudManager {
 		}
 		Minecraft mc = Minecraft.getInstance();
 		int sw = mc.getWindow().getGuiScaledWidth(), sh = mc.getWindow().getGuiScaledHeight();
-		int freeW = Math.max(0, sw - dragging.width), freeH = Math.max(0, sh - dragging.height);
+		int freeW = Math.max(0, sw - dragging.width()), freeH = Math.max(0, sh - dragging.height());
 		int nx = Math.max(0, Math.min(freeW, (int) Math.round(mx - dragOffsetX)));
 		int ny = Math.max(0, Math.min(freeH, (int) Math.round(my - dragOffsetY)));
 		guideX = null;
 		guideY = null;
 		// Shift moves freely, without snapping.
 		if (!mc.hasShiftDown()) {
-			nx = snapAxis(nx, dragging.width, sw, true);
-			ny = snapAxis(ny, dragging.height, sh, false);
+			nx = snapAxis(nx, dragging.width(), sw, true);
+			ny = snapAxis(ny, dragging.height(), sh, false);
 		}
 		dragging.x = Math.max(0, Math.min(freeW, nx));
 		dragging.y = Math.max(0, Math.min(freeH, ny));
@@ -347,7 +362,7 @@ public final class HudManager {
 				continue;
 			}
 			int oStart = horizontal ? o.x : o.y;
-			int oEnd = oStart + (horizontal ? o.width : o.height);
+			int oEnd = oStart + (horizontal ? o.width() : o.height());
 			targets.add(new int[]{oStart, oStart});                // starts aligned
 			targets.add(new int[]{oEnd - size, oEnd});             // ends aligned
 			targets.add(new int[]{oEnd + GAP, oEnd});              // right after it

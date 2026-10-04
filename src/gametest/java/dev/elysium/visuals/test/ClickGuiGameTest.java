@@ -422,6 +422,12 @@ public class ClickGuiGameTest implements FabricClientGameTest {
 		world.getServer().runCommand("item replace entity @e[type=minecraft:zombie,limit=1] armor.chest with minecraft:iron_chestplate");
 		world.getServer().runCommand("item replace entity @e[type=minecraft:zombie,limit=1] weapon.mainhand with minecraft:diamond_sword[enchantments={sharpness:3}]");
 		world.getServer().runCommand("effect give @e[type=minecraft:zombie] minecraft:absorption 60 1");
+		// High-contrast stripes all around, so the blur under the plates is visible.
+		for (int a = 0; a < 360; a += 10) {
+			int px = (int) Math.round(Math.cos(Math.toRadians(a)) * 9), pz = (int) Math.round(Math.sin(Math.toRadians(a)) * 9);
+			world.getServer().runCommand("fill ~" + px + " ~ ~" + pz + " ~" + px + " ~12 ~" + pz
+					+ ((a / 10) % 2 == 0 ? " minecraft:black_concrete" : " minecraft:white_concrete"));
+		}
 		for (String style : List.of("minimal", "plates", "panels", "cards")) {
 			context.runOnClient(mc -> {
 				interfaceStyle().set(style);
@@ -433,6 +439,10 @@ public class ClickGuiGameTest implements FabricClientGameTest {
 			});
 			context.waitTicks(10);
 			context.takeScreenshot("hud-style-" + style);
+			context.runOnClient(mc -> ((dev.elysium.visuals.client.module.setting.BooleanSetting) watermarkSetting("blur")).set(false));
+			context.waitTicks(2);
+			context.takeScreenshot("hud-style-" + style + "-noblur");
+			context.runOnClient(mc -> ((dev.elysium.visuals.client.module.setting.BooleanSetting) watermarkSetting("blur")).set(true));
 			// Readability on the light and the glass theme.
 			for (Theme theme : List.of(Themes.LIGHT, Themes.LIQUID_GLASS)) {
 				context.runOnClient(mc -> ThemeManager.get().select(theme));
@@ -441,6 +451,15 @@ public class ClickGuiGameTest implements FabricClientGameTest {
 			}
 			context.runOnClient(mc -> ThemeManager.get().select(Themes.DEFAULT));
 		}
+		// "Масштаб" slider: the element grows on screen (layout, dragging and outlines use the scaled size).
+		HudElement watermarkEl = context.computeOnClient(mc -> ModuleManager.get().find(Watermark.class).hudElements().get(0));
+		int normalW = context.computeOnClient(mc -> watermarkEl.width());
+		context.runOnClient(mc -> ((NumberSetting) watermarkSetting("scale_watermark")).set(150.0));
+		context.waitTicks(5);
+		int bigW = context.computeOnClient(mc -> watermarkEl.width());
+		assertTrue(Math.abs(bigW - normalW * 1.5) <= 2, "Watermark at 150 % should be 1.5x wider: " + normalW + " -> " + bigW);
+		context.takeScreenshot("hud-scale-150");
+		context.runOnClient(mc -> ((NumberSetting) watermarkSetting("scale_watermark")).set(100.0));
 		// An unknown style id (e.g. from an old config) falls back to the default.
 		context.runOnClient(mc -> interfaceStyle().set("glass"));
 		assertTrue(context.computeOnClient(mc -> ModuleManager.get().find(Watermark.class).style().id().equals("cards")),
@@ -462,6 +481,13 @@ public class ClickGuiGameTest implements FabricClientGameTest {
 		click(context, scale, 31, 209);
 		context.waitTicks(10);
 		context.takeScreenshot("hud-editor");
+		// The editor in every style: empty blocks show sample rows.
+		for (String style : List.of("minimal", "plates", "panels", "cards")) {
+			context.runOnClient(mc -> interfaceStyle().set(style));
+			context.waitTicks(8);
+			context.takeScreenshot("hud-editor-" + style);
+		}
+		context.runOnClient(mc -> interfaceStyle().set("cards"));
 		// Only the Watermark's elements from here on, so the watermark plate is the top-left one.
 		context.runOnClient(mc -> ModuleManager.get().modules().forEach(m -> {
 			if (!m.hudElements().isEmpty() && !(m instanceof Watermark)) {

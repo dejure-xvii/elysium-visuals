@@ -1,6 +1,7 @@
 package dev.elysium.visuals.client.module;
 
 import dev.elysium.visuals.client.hud.HudElement;
+import dev.elysium.visuals.client.module.setting.NumberSetting;
 import dev.elysium.visuals.client.module.setting.Setting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -56,10 +57,17 @@ public abstract class Module {
 		return setting;
 	}
 
-	/** Registers a draggable HUD element shown while this module is enabled. */
+	/** Registers a draggable HUD element shown while this module is enabled (with a "Масштаб" slider). */
 	protected <E extends HudElement> E addHud(E element) {
 		element.setOwner(this);
 		hudElements.add(element);
+		if (element.isDraggable()) {
+			// Every movable element gets its own size slider, shown while the element is.
+			NumberSetting scale = add(new NumberSetting("scale_" + element.localId(), "Масштаб: " + element.name(),
+					100, 50, 150, 5, "%"));
+			scale.visibleWhen(element::conditionMet);
+			element.setScaleSetting(scale);
+		}
 		return element;
 	}
 

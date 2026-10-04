@@ -2,6 +2,7 @@ package dev.elysium.visuals.client.hud;
 
 import dev.elysium.visuals.client.gui.anim.SmoothValue;
 import dev.elysium.visuals.client.module.Module;
+import dev.elysium.visuals.client.module.setting.NumberSetting;
 import dev.elysium.visuals.client.theme.Palette;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
@@ -29,6 +30,8 @@ public abstract class HudElement {
 	private final Anchor anchor;
 	private Module owner;
 	private BooleanSupplier condition = () -> true;
+	/** "Масштаб" slider (percent), created by the owning module; null = 100 %. */
+	private NumberSetting scaleSetting;
 
 	/** Saved position as a fraction of the free space, or null for the default anchor. */
 	Float fx;
@@ -57,6 +60,33 @@ public abstract class HudElement {
 
 	public void setOwner(Module owner) {
 		this.owner = owner;
+	}
+
+	/** The extra condition alone (e.g. the element is ticked in the module settings). */
+	public boolean conditionMet() {
+		return condition.getAsBoolean();
+	}
+
+	public void setScaleSetting(NumberSetting setting) {
+		this.scaleSetting = setting;
+	}
+
+	/** User scale of the element, 0.5..1.5. Drawing happens at 1; HudManager scales it. */
+	public float scale() {
+		return scaleSetting == null ? 1f : scaleSetting.floatValue() / 100f;
+	}
+
+	/** Element id without the owning module ("watermark"). */
+	public String localId() {
+		return id;
+	}
+
+	/**
+	 * True if the element stays visible without data (e.g. a block that shrinks
+	 * to its header); it still gets sample data in the editor.
+	 */
+	public boolean showsWhenEmpty() {
+		return false;
 	}
 
 	/** Enabled by the user: owning module on and the element selected. */
@@ -127,7 +157,7 @@ public abstract class HudElement {
 		return fx != null && fy != null;
 	}
 
-	/** Current screen position and size (GUI units), as laid out in the last frame. */
+	/** Current screen position and size (GUI units, scaled), as laid out in the last frame. */
 	public int x() {
 		return x;
 	}
@@ -137,14 +167,14 @@ public abstract class HudElement {
 	}
 
 	public int width() {
-		return width;
+		return Math.round(width * scale());
 	}
 
 	public int height() {
-		return height;
+		return Math.round(height * scale());
 	}
 
 	public boolean contains(double mx, double my) {
-		return mx >= x - 2 && mx < x + width + 2 && my >= y - 2 && my < y + height + 2;
+		return mx >= x - 2 && mx < x + width() + 2 && my >= y - 2 && my < y + height() + 2;
 	}
 }

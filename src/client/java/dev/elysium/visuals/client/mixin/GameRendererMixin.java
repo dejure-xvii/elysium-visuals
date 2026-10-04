@@ -3,6 +3,7 @@ package dev.elysium.visuals.client.mixin;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.elysium.visuals.client.module.impl.render.Hands;
 import dev.elysium.visuals.client.module.impl.render.NoRender;
+import dev.elysium.visuals.client.render.HudBlur;
 import dev.elysium.visuals.client.render.WorldEffects;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
@@ -29,6 +30,12 @@ public abstract class GameRendererMixin {
 			target = "Lnet/minecraft/client/renderer/LevelRenderer;render", shift = At.Shift.AFTER))
 	private void elysium$afterWorld(DeltaTracker deltaTracker, CallbackInfo ci) {
 		WorldEffects.afterWorld((GameRenderer) (Object) this);
+	}
+
+	// The finished frame (world, hand, post effects) right before the GUI is drawn: blur under the HUD plates.
+	@Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;render()V"))
+	private void elysium$beforeGui(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo ci) {
+		HudBlur.apply((GameRenderer) (Object) this);
 	}
 
 	// Right after the hand (and screen effects) are drawn: the depth buffer now marks the hand.

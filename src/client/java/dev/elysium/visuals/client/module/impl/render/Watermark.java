@@ -12,6 +12,7 @@ import dev.elysium.visuals.client.module.Module;
 import dev.elysium.visuals.client.module.setting.BooleanSetting;
 import dev.elysium.visuals.client.module.setting.ModeSetting;
 import dev.elysium.visuals.client.module.setting.MultiSelectSetting;
+import dev.elysium.visuals.client.module.setting.NumberSetting;
 
 import java.util.List;
 import java.util.Set;
@@ -26,6 +27,9 @@ import static dev.elysium.visuals.client.module.setting.MultiSelectSetting.optio
 public class Watermark extends Module {
 	private final ModeSetting style = add(new ModeSetting("style", "Стиль", InterfaceStyle.options(),
 			InterfaceStyle.DEFAULT.id()));
+	private final BooleanSetting blur = add(new BooleanSetting("blur", "Блюр", true));
+	private final NumberSetting blurStrength = add(new NumberSetting("blur_strength", "Сила размытия", 5, 1, 10, 1))
+			.visibleWhen(blur::isOn);
 	private final MultiSelectSetting elements = add(new MultiSelectSetting("elements", "Элементы HUD",
 			List.of(
 					option("watermark", "Ватермарка"),
@@ -60,6 +64,16 @@ public class Watermark extends Module {
 		addHud(new TargetElement()).visibleWhen(() -> elements.isSelected("target"));
 		addHud(new CooldownsElement()).visibleWhen(() -> elements.isSelected("cooldowns"));
 		addHud(new BuffsElement()).visibleWhen(() -> elements.isSelected("buffs"));
+	}
+
+	/** Blur the world under the plates (turned off automatically with Iris shaders). */
+	public boolean blurEnabled() {
+		return blur.isOn();
+	}
+
+	/** 1..10 */
+	public int blurStrength() {
+		return blurStrength.intValue();
 	}
 
 	/** Selected style; an unknown id (e.g. from an old config) falls back to the default. */

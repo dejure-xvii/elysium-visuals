@@ -33,6 +33,8 @@ public class TargetElement extends HudElement implements HudData.Target {
 	/** How long the trail waits before it catches up with the health bar. */
 	private static final long TRAIL_HOLD_MS = 420;
 	private static final long SHAKE_MS = 320;
+	/** The target is drawn at about two thirds of the style size (head, text and bar alike). */
+	private static final float SIZE = 0.66f;
 
 	private LivingEntity shown;
 	private ItemStack eggIcon = ItemStack.EMPTY;
@@ -71,8 +73,8 @@ public class TargetElement extends HudElement implements HudData.Target {
 			switchTo(target);
 		}
 		Skin.Size size = InterfaceStyle.current().measureTarget(this);
-		width = animateWidth(size.width());
-		height = animateHeight(size.height());
+		width = animateWidth(Math.round(size.width() * SIZE));
+		height = animateHeight(Math.round(size.height() * SIZE));
 	}
 
 	private void switchTo(LivingEntity target) {
@@ -217,11 +219,16 @@ public class TargetElement extends HudElement implements HudData.Target {
 		float cx = x + width / 2f, cy = y + height / 2f;
 		float scale = 0.96f + 0.04f * ease;
 		g.pose().pushMatrix();
-		g.pose().translate(cx, cy + (1 - ease) * 6f);
+		g.pose().translate(cx, cy + (1 - ease) * 4f);
 		g.pose().scale(scale, scale);
 		g.pose().translate(-cx, -cy);
+		// The style draws at its full size; everything shrinks around the top-left corner.
+		g.pose().translate(x, y);
+		g.pose().scale(SIZE, SIZE);
+		g.pose().translate(-x, -y);
+		int fullW = Math.round(width / SIZE), fullH = Math.round(height / SIZE);
 		RenderUtil.withAlpha(0.35f + 0.65f * ease,
-				() -> InterfaceStyle.current().drawTarget(g, p, this, x, y, width, height));
+				() -> InterfaceStyle.current().drawTarget(g, p, this, x, y, fullW, fullH));
 		g.pose().popMatrix();
 	}
 }

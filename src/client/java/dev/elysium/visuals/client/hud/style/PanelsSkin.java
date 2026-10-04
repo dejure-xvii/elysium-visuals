@@ -101,38 +101,72 @@ final class PanelsSkin implements Skin {
 		return 11 + (part.raw() ? RenderUtil.widthRaw(part.value()) : SkinKit.w(partText(part)));
 	}
 
+	/** Widest a watermark line may get before the next parts wrap onto another line. */
+	private static final int WM_MAX_W = 320;
+	private static final int WM_H = 16;
+	private static final int WM_LINE = 12;
+
+	/** Splits the parts into lines that fit {@link #WM_MAX_W}; the first one starts after the client name. */
+	private static List<List<HudData.Part>> lines(HudData.Watermark wm) {
+		List<List<HudData.Part>> lines = new java.util.ArrayList<>();
+		List<HudData.Part> line = new java.util.ArrayList<>();
+		int x = PAD + SkinKit.wBold(wm.client());
+		for (HudData.Part part : wm.parts()) {
+			int pw = SEP + partWidth(part);
+			if (!line.isEmpty() && x + pw > WM_MAX_W - PAD) {
+				lines.add(line);
+				line = new java.util.ArrayList<>();
+				x = PAD - SEP;
+			}
+			line.add(part);
+			x += pw;
+		}
+		lines.add(line);
+		return lines;
+	}
+
 	@Override
 	public Size measureWatermark(HudData.Watermark wm) {
-		int w = PAD + SkinKit.wBold(wm.client());
-		for (HudData.Part part : wm.parts()) {
-			w += SEP + partWidth(part);
+		List<List<HudData.Part>> lines = lines(wm);
+		int w = 0;
+		for (int i = 0; i < lines.size(); i++) {
+			int lw = i == 0 ? PAD + SkinKit.wBold(wm.client()) : PAD - SEP;
+			for (HudData.Part part : lines.get(i)) {
+				lw += SEP + partWidth(part);
+			}
+			w = Math.max(w, lw);
 		}
-		return new Size(w + PAD, 16);
+		return new Size(w + PAD, WM_H + (lines.size() - 1) * WM_LINE);
 	}
 
 	@Override
 	public void drawWatermark(GuiGraphicsExtractor g, Palette p, HudData.Watermark wm, int x, int y, int w, int h) {
 		SkinKit.plate(g, p, x, y, w, h, R, ALPHA);
 		g.enableScissor(x, y, x + w, y + h);
-		int tx = x + PAD;
-		int ty = y + 4;
-		SkinKit.bold(g, wm.client(), tx, ty, p.accent2());
-		tx += SkinKit.wBold(wm.client());
-		for (HudData.Part part : wm.parts()) {
-			RenderUtil.roundedRect(g, tx + SEP / 2f - 1, y + h / 2f - 1, 2, 2, 1, p.textFaint());
-			tx += SEP;
-			if (part.lead() != HudData.Lead.NONE) {
-				part.lead().draw(g, p, tx, y + 4, 8);
-			} else {
-				part.icon().draw(g, tx + 4, y + h / 2f, ColorUtil.mulAlpha(p.text(), 0.8f));
-			}
-			tx += 11;
-			if (part.raw()) {
-				RenderUtil.textRaw(g, part.value(), tx, ty, p.text());
-				tx += RenderUtil.widthRaw(part.value());
-			} else {
-				SkinKit.text(g, partText(part), tx, ty, p.text());
-				tx += SkinKit.w(partText(part));
+		SkinKit.bold(g, wm.client(), x + PAD, y + 4, p.accent2());
+		List<List<HudData.Part>> lines = lines(wm);
+		for (int i = 0; i < lines.size(); i++) {
+			int lineY = y + i * WM_LINE;
+			int ty = lineY + 4;
+			int tx = i == 0 ? x + PAD + SkinKit.wBold(wm.client()) : x + PAD - SEP;
+			for (HudData.Part part : lines.get(i)) {
+				if (tx > x + PAD) {
+					RenderUtil.roundedRect(g, tx + SEP / 2f - 1, lineY + WM_H / 2f - 1, 2, 2, 1, p.textFaint());
+				}
+				tx += SEP;
+				if (part.lead() != HudData.Lead.NONE) {
+					part.lead().draw(g, p, tx, lineY + 4, 8);
+				} else {
+					part.icon().draw(g, tx + 4, lineY + WM_H / 2f, ColorUtil.mulAlpha(p.text(), 0.8f));
+				}
+				tx += 11;
+				if (part.raw()) {
+					RenderUtil.textRaw(g, part.value(), tx, ty, p.text());
+					tx += RenderUtil.widthRaw(part.value());
+				} else {
+					SkinKit.text(g, partText(part), tx, ty, p.text());
+					tx += SkinKit.w(partText(part));
+				}
 			}
 		}
 		g.disableScissor();

@@ -1,6 +1,7 @@
 package dev.elysium.visuals.client.hud.style;
 
 import dev.elysium.visuals.client.gui.render.RenderUtil;
+import dev.elysium.visuals.client.render.HudBlur;
 import dev.elysium.visuals.client.theme.Palette;
 import dev.elysium.visuals.client.util.ColorUtil;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -30,8 +31,9 @@ final class SkinKit {
 		return ColorUtil.withAlpha(ColorUtil.mixRgb(p.bgBottom(), 0xFF000000, toBlack), alpha);
 	}
 
-	/** A dark rounded plate with a soft shadow. */
+	/** A dark rounded plate with a soft shadow, over the blurred world (if HUD blur is on). */
 	static void plate(GuiGraphicsExtractor g, Palette p, float x, float y, float w, float h, float r, int alpha) {
+		HudBlur.mask(g, x, y, w, h, r);
 		RenderUtil.softGlow(g, x, y, w, h, r, 0x30000000, 4);
 		RenderUtil.roundedRect(g, x, y, w, h, r, dark(p, alpha));
 	}

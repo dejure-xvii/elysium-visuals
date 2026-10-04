@@ -26,6 +26,7 @@ public final class WorldEffects {
 		Ambience.init();
 		MotionBlur.init();
 		Hands.init();
+		HudBlur.init();
 	}
 
 	/** Called (mixin) right after the world is drawn. */

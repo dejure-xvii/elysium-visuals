@@ -1,23 +1,23 @@
 package dev.elysium.visuals.client.module.impl.utils;
 
 import dev.elysium.visuals.client.gui.render.RenderUtil;
-import dev.elysium.visuals.client.hud.HudElement;
-import dev.elysium.visuals.client.hud.HudStyle;
+import dev.elysium.visuals.client.hud.HudIcon;
+import dev.elysium.visuals.client.hud.ListElement;
+import dev.elysium.visuals.client.hud.style.HudData;
 import dev.elysium.visuals.client.module.Category;
 import dev.elysium.visuals.client.module.Module;
 import dev.elysium.visuals.client.module.setting.BooleanSetting;
 import dev.elysium.visuals.client.module.setting.NumberSetting;
-import dev.elysium.visuals.client.theme.Palette;
 import dev.elysium.visuals.client.util.Alerts;
-import dev.elysium.visuals.client.util.ColorUtil;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
+
+import java.util.List;
 
 /** Remembers where you died: a chat message with the coordinates and a HUD compass pointing back. */
 public class DeathPoint extends Module {
@@ -70,53 +70,54 @@ public class DeathPoint extends Module {
 		return dim == Level.END ? "Энд" : "Верхний мир";
 	}
 
-	private final class Element extends HudElement {
-		private String line = "";
-		private String sub = "";
+	/** Arrow towards the death point (relative to where the player looks), or a dot in another dimension. */
+	private final HudData.Lead arrow = (g, p, x, y, size) -> {
+		float cx = x + size / 2f, cy = y + size / 2f;
+		LocalPlayer player = Minecraft.getInstance().player;
+		if (pos != null && player != null && player.level().dimension() == dimension) {
+			double dx = pos.getX() + 0.5 - player.getX(), dz = pos.getZ() + 0.5 - player.getZ();
+			float yawTo = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90f;
+			float rel = Mth.wrapDegrees(yawTo - player.getYRot());
+			// chevron(turn = 0) points right; -1 points up (forward).
+			RenderUtil.chevron(g, cx, cy, rel / 90f - 1f, p.accent2());
+		} else {
+			RenderUtil.roundedRect(g, cx - 2, cy - 2, 4, 4, 2, p.accent2());
+		}
+	};
+
+	/** The death point as an Interface block: arrow, coordinates and distance, in the selected style. */
+	private final class Element extends ListElement {
+		private static final HudData.Block BLOCK = new HudData.Block(HudData.Kind.INFO, "Место смерти", HudIcon.COORDS,
+				"Точка", "Расстояние");
 
 		Element() {
 			super("death", "Место смерти", Anchor.TOP_LEFT);
 		}
 
 		@Override
-		public boolean hasContent() {
-			LocalPlayer player = Minecraft.getInstance().player;
-			return pos != null && player != null && !player.isDeadOrDying();
+		protected HudData.Block block() {
+			return BLOCK;
 		}
 
 		@Override
-		protected void measure(boolean preview) {
-			LocalPlayer player = Minecraft.getInstance().player;
-			if (pos != null && player != null) {
-				line = pos.getX() + " " + pos.getY() + " " + pos.getZ();
-				sub = player.level().dimension() == dimension ? Math.round(distance(player)) + " блоков" : dimensionName(dimension);
-			} else if (preview) {
-				line = "120 64 -340";
-				sub = "56 блоков";
-			}
-			width = HudStyle.PAD * 2 + 18 + Math.max(RenderUtil.widthBold(line), RenderUtil.width(sub)) + 4;
-			height = 26;
+		protected boolean headerWhenEmpty() {
+			return false;
 		}
 
 		@Override
-		protected void draw(GuiGraphicsExtractor g, Palette p, boolean preview) {
-			HudStyle.panel(g, p, x, y, width, height);
-			float cx = x + HudStyle.PAD + 7, cy = y + height / 2f;
-			RenderUtil.roundedRect(g, cx - 7, cy - 7, 14, 14, 7, ColorUtil.mulAlpha(p.accent(), 0.25f));
+		protected List<HudData.Row> collect() {
 			LocalPlayer player = Minecraft.getInstance().player;
-			if (pos != null && player != null && player.level().dimension() == dimension) {
-				// Angle of the death point relative to where the player is looking (0 = straight ahead).
-				double dx = pos.getX() + 0.5 - player.getX(), dz = pos.getZ() + 0.5 - player.getZ();
-				float yawTo = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90f;
-				float rel = Mth.wrapDegrees(yawTo - player.getYRot());
-				// chevron(turn = 0) points right; -1 points up (forward).
-				RenderUtil.chevron(g, cx, cy, rel / 90f - 1f, p.accent());
-			} else {
-				RenderUtil.roundedRect(g, cx - 2, cy - 2, 4, 4, 2, p.accent());
+			if (pos == null || player == null || player.isDeadOrDying()) {
+				return List.of();
 			}
-			int tx = x + HudStyle.PAD + 18;
-			RenderUtil.textBold(g, line, tx, y + 4, p.text());
-			RenderUtil.text(g, null, sub, tx, y + 14, p.textDim());
+			String where = player.level().dimension() == dimension
+					? Math.round(distance(player)) + " блоков" : dimensionName(dimension);
+			return List.of(HudData.Row.text("death", arrow, pos.getX() + " " + pos.getY() + " " + pos.getZ(), "", where, true));
+		}
+
+		@Override
+		protected List<HudData.Row> sample() {
+			return List.of(HudData.Row.text("death", arrow, "120 64 -340", "", "56 блоков", true));
 		}
 	}
 }

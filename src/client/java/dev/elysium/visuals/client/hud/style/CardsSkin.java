@@ -24,8 +24,6 @@ final class CardsSkin implements Skin {
 	private static final int FOOT_H = 12;
 	private static final int CAP_H = 11;
 	private static final int RING = 4;
-	/** Key prefix of watermark rows whose value NameProtect must leave alone. */
-	private static final String RAW = "raw:";
 
 	@Override
 	public boolean keepsEmptyHeader() {
@@ -43,7 +41,7 @@ final class CardsSkin implements Skin {
 	/** Capsule width, plus the ring next to it for timers. */
 	private static int capsuleWidth(HudData.Kind kind, HudData.Row row) {
 		String v = value(kind, row);
-		int w = 7 + (row.key().startsWith(RAW) ? RenderUtil.widthRaw(v) : SkinKit.w(v)) + 7;
+		int w = 7 + SkinKit.w(v) + 7;
 		if (kind == HudData.Kind.BINDS || kind == HudData.Kind.FRIENDS) {
 			w += 8;
 		}
@@ -135,12 +133,7 @@ final class CardsSkin implements Skin {
 		SkinKit.capsule(g, cx, cy, cw, CAP_H, ColorUtil.withAlpha(p.text(), 0x10));
 		RenderUtil.roundedOutline(g, cx, cy, cw, CAP_H, CAP_H / 2f, 0, ColorUtil.withAlpha(p.text(), 0x1A));
 		String v = value(kind, row);
-		int vc = kind == HudData.Kind.BINDS && !row.on() ? p.textDim() : p.text();
-		if (row.key().startsWith(RAW)) {
-			RenderUtil.textRaw(g, v, cx + 7, cy + 2, vc);
-		} else {
-			SkinKit.text(g, v, cx + 7, cy + 2, vc);
-		}
+		SkinKit.text(g, v, cx + 7, cy + 2, kind == HudData.Kind.BINDS && !row.on() ? p.textDim() : p.text());
 		if (kind == HudData.Kind.BINDS || kind == HudData.Kind.FRIENDS) {
 			// On/off indicator: a ring, filled while the module is on (the friend is online).
 			float dx = cx + cw - 7, dy = cy + CAP_H / 2f;
@@ -154,44 +147,110 @@ final class CardsSkin implements Skin {
 
 	// --- Watermark ----------------------------------------------------------------
 
-	private static List<HudData.Row> infoRows(HudData.Watermark wm) {
-		List<HudData.Row> list = new ArrayList<>();
-		for (HudData.Part part : wm.parts()) {
-			HudData.Lead lead = part.lead() != HudData.Lead.NONE ? part.lead() : HudData.Lead.icon(part.icon());
-			list.add(HudData.Row.text((part.raw() ? RAW : "") + part.id(), lead, part.label(), "", part.raw() ? part.value() : unit(part), true));
-		}
-		return list;
-	}
+	private static final int WM_H = 20;
+	/** Space between the parts of the watermark row. */
+	private static final int WM_GAP = 8;
 
-	private static String unit(HudData.Part part) {
+	private static String wmValue(HudData.Part part) {
 		return switch (part.id()) {
 			case "ping" -> part.value() + " ms";
+			case "bps" -> part.value() + " bps";
 			default -> part.value();
 		};
 	}
 
-	@Override
-	public Size measureWatermark(HudData.Watermark wm) {
-		String title = wm.client() + " " + wm.version();
-		int w = frameWidth(title, "Параметр", "Значение");
-		List<HudData.Row> rows = infoRows(wm);
-		for (HudData.Row row : rows) {
-			w = Math.max(w, rowWidth(HudData.Kind.INFO, row));
+	/** Icon, then the value in a capsule. */
+	private static int wmPartWidth(HudData.Part part) {
+		int textW = part.raw() ? RenderUtil.widthRaw(part.value()) : SkinKit.w(wmValue(part));
+		return 9 + 4 + 6 + textW + 6;
+	}
+
+	private static int wmLeadWidth(HudData.Watermark wm) {
+		return 19 + SkinKit.w(wm.client()) + 4 + SkinKit.w(wm.version());
+	}
+
+	/** Widest a watermark line may get before the next values wrap onto another line. */
+	private static final int WM_MAX_W = 300;
+	private static final int WM_LINE = 16;
+
+	/** Splits the parts into lines: the first starts after the logo and title, all fit in {@link #WM_MAX_W}. */
+	private static List<List<HudData.Part>> wmLines(HudData.Watermark wm) {
+		List<List<HudData.Part>> lines = new ArrayList<>();
+		List<HudData.Part> line = new ArrayList<>();
+		int x = wmLeadWidth(wm);
+		for (HudData.Part part : wm.parts()) {
+			int pw = WM_GAP + wmPartWidth(part);
+			if (!line.isEmpty() && x + pw > WM_MAX_W - 20) {
+				lines.add(line);
+				line = new ArrayList<>();
+				x = 7 - WM_GAP;
+			}
+			line.add(part);
+			x += pw;
 		}
-		return new Size(w, HEAD_H + 1 + rows.size() * ROW_H + FOOT_H);
+		lines.add(line);
+		return lines;
 	}
 
 	@Override
+	public Size measureWatermark(HudData.Watermark wm) {
+		List<List<HudData.Part>> lines = wmLines(wm);
+		int w = 0;
+		for (int i = 0; i < lines.size(); i++) {
+			int lw = i == 0 ? wmLeadWidth(wm) : 7 - WM_GAP;
+			for (HudData.Part part : lines.get(i)) {
+				lw += WM_GAP + wmPartWidth(part);
+			}
+			w = Math.max(w, lw);
+		}
+		return new Size(w + 20, WM_H + (lines.size() - 1) * WM_LINE);
+	}
+
+	/**
+	 * Compact rows in the card look: logo, name and version, then the values in
+	 * capsules side by side (wrapping onto another line only when they don't fit), "⋯".
+	 */
+	@Override
 	public void drawWatermark(GuiGraphicsExtractor g, Palette p, HudData.Watermark wm, int x, int y, int w, int h) {
-		int top = frame(g, p, null, true, wm.client(), "Параметр", "Значение", x, y, w, h);
-		SkinKit.text(g, wm.version(), x + 19 + SkinKit.w(wm.client()) + 4, y + 5, p.textDim());
-		g.enableScissor(x, top, x + w, y + h - FOOT_H);
-		int rowY = top;
-		for (HudData.Row row : infoRows(wm)) {
-			drawRow(g, p, HudData.Kind.INFO, row, x, rowY, w);
-			rowY += ROW_H;
+		SkinKit.plate(g, p, x, y, w, h, R, ALPHA);
+		SkinKit.outline(g, p, x, y, w, h, R);
+		g.enableScissor(x, y, x + w, y + h);
+		RenderUtil.logo(g, x + 6, y + (WM_H - 8) / 2f, 8, p, false);
+		int ty = y + (WM_H - 8) / 2;
+		SkinKit.text(g, wm.client(), x + 19, ty, p.text());
+		SkinKit.text(g, wm.version(), x + 19 + SkinKit.w(wm.client()) + 4, ty, p.textDim());
+		List<List<HudData.Part>> lines = wmLines(wm);
+		for (int i = 0; i < lines.size(); i++) {
+			int lineY = y + i * WM_LINE;
+			int px = i == 0 ? x + wmLeadWidth(wm) : x + 7 - WM_GAP;
+			for (HudData.Part part : lines.get(i)) {
+				px += WM_GAP;
+				wmPart(g, p, part, px, lineY);
+				px += wmPartWidth(part);
+			}
 		}
 		g.disableScissor();
+		SkinKit.menuDots(g, x + w - 10, y + WM_H / 2f, p.textFaint());
+	}
+
+	/** Icon (or skin head), then the value in a capsule, on the line starting at {@code lineY}. */
+	private static void wmPart(GuiGraphicsExtractor g, Palette p, HudData.Part part, int px, int lineY) {
+		if (part.lead() != HudData.Lead.NONE) {
+			part.lead().draw(g, p, px, lineY + (WM_H - 9) / 2, 9);
+		} else {
+			part.icon().draw(g, px + 4.5f, lineY + WM_H / 2f, p.accent2());
+		}
+		int cx = px + 13;
+		int cw = wmPartWidth(part) - 13;
+		float cy = lineY + (WM_H - CAP_H) / 2f;
+		SkinKit.capsule(g, cx, cy, cw, CAP_H, ColorUtil.withAlpha(p.text(), 0x10));
+		RenderUtil.roundedOutline(g, cx, cy, cw, CAP_H, CAP_H / 2f, 0, ColorUtil.withAlpha(p.text(), 0x1A));
+		int ty = lineY + (WM_H - 8) / 2;
+		if (part.raw()) {
+			RenderUtil.textRaw(g, part.value(), cx + 6, ty, p.text());
+		} else {
+			SkinKit.text(g, wmValue(part), cx + 6, ty, p.text());
+		}
 	}
 
 	// --- Target -------------------------------------------------------------------
