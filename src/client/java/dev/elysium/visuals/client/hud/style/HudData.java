@@ -65,6 +65,9 @@ public final class HudData {
 	public interface Target {
 		String name();
 
+		/** A player (or FakePlayer), not a mob. */
+		boolean isPlayer();
+
 		/** Health 0..1, eased. */
 		float health();
 

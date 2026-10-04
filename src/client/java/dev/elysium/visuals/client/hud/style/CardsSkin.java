@@ -277,9 +277,9 @@ final class CardsSkin implements Skin {
 			SkinKit.capsule(g, cx, top + 8 - CAP_H / 2f, cw, CAP_H, ColorUtil.withAlpha(p.text(), 0x10));
 			RenderUtil.roundedOutline(g, cx, top + 8 - CAP_H / 2f, cw, CAP_H, CAP_H / 2f, 0, ColorUtil.withAlpha(p.text(), 0x1A));
 			SkinKit.text(g, hp, cx + 7, top + 5, p.text());
-			SkinKit.text(g, RenderUtil.ellipsize(t.name(), cx - 6 - tx, false), tx, top + 4, p.text());
-			RenderUtil.text(g, "Игрок", RenderUtil.Face.SMALL, tx, top + 14, p.textDim());
+			SkinKit.text(g, RenderUtil.ellipsize(t.name(), cx - 6 - tx, false), tx, top + 3, p.text());
+			RenderUtil.text(g, t.isPlayer() ? "Игрок" : "Существо", RenderUtil.Face.SMALL, tx, top + 13, p.textDim());
 		});
-		SkinKit.healthBar(g, t, tx, top + 22, right - tx, 3, p.accent2(), p.accent(), ColorUtil.withAlpha(p.text(), 0x18));
+		SkinKit.healthBar(g, t, tx, top + 23, right - tx, 3, p.accent2(), p.accent(), ColorUtil.withAlpha(p.text(), 0x18));
 	}
 }

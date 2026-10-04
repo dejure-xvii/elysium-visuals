@@ -1,0 +1,15 @@
+{
+	"providers": [
+		{
+			"type": "ttf",
+			"file": "elysium-visuals:inter-medium.ttf",
+			"size": 9.0,
+			"oversample": 2.75,
+			"shift": [0.0, 0.0]
+		},
+		{
+			"type": "reference",
+			"id": "minecraft:default"
+		}
+	]
+}

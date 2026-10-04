@@ -138,6 +138,11 @@ public class TargetElement extends HudElement implements HudData.Target {
 	}
 
 	@Override
+	public boolean isPlayer() {
+		return shown instanceof net.minecraft.world.entity.player.Player;
+	}
+
+	@Override
 	public float health() {
 		return health.get();
 	}

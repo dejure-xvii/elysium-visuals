@@ -13,8 +13,10 @@ import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.Util;
 import org.joml.Matrix3x2f;
+import org.joml.Vector2f;
 
 import java.util.Locale;
+import java.util.function.IntFunction;
 
 /**
  * Drawing primitives for the ClickGUI and HUD: anti-aliased rounded
@@ -27,33 +29,67 @@ import java.util.Locale;
 public final class RenderUtil {
 	/*
 	 * Font textures are sampled with NEAREST filtering, so a TTF glyph is only
-	 * crisp when its texels map 1:1 to screen pixels. There is one font
-	 * definition per GUI scale (font/inter*_x<N>.json, oversample = N) and the
-	 * one matching the current scale is used.
+	 * crisp when its texels map 1:1 to screen pixels: the font's oversample has
+	 * to equal the number of screen pixels per text unit (GUI scale × the scale
+	 * of the pose the text is drawn in). Fonts are defined per oversample, in
+	 * quarters: font/inter*_x<N>.json for whole N, and for the faces the HUD
+	 * scales (REGULAR, BOLD, SMALL) also font/inter*_q<Q>.json with oversample
+	 * Q/4 (0.25 steps up to 4, 0.5 steps up to 8). Text always uses the font
+	 * rasterized for its actual size and starts on a whole screen pixel; it is
+	 * never shrunk or stretched after rasterizing.
 	 */
 	private static final int MAX_FONT_SCALE = 8;
+	/** Oversample range in quarters: 0.5 .. 8. */
+	private static final int MIN_Q = 2;
+	private static final int MAX_Q = MAX_FONT_SCALE * 4;
 
 	/** Inter cuts used by the GUI. */
 	public enum Face {
 		/** Medium 9: body text. */
-		REGULAR("inter"),
+		REGULAR("inter", true),
 		/** SemiBold 9: names, titles of plates. */
-		BOLD("inter_semibold"),
+		BOLD("inter_semibold", true),
 		/** Bold 9: the "Elysium" word of the brand. */
-		HEAVY("inter_bold"),
+		HEAVY("inter_bold", false),
 		/** Light 9: the "Visuals" word of the brand. */
-		LIGHT("inter_light"),
+		LIGHT("inter_light", false),
 		/** Bold 13: page titles (baseline 3 units lower than the 9-unit faces). */
-		TITLE("inter_title"),
+		TITLE("inter_title", false),
 		/** SemiBold 7: small upper-case captions. */
-		SMALL("inter_small");
+		SMALL("inter_small", true);
 
-		private final FontDescription[] fonts = new FontDescription[MAX_FONT_SCALE];
+		/** Font per oversample in quarters; null where no definition exists. */
+		private final FontDescription[] byQuarter = new FontDescription[MAX_Q + 1];
 
-		Face(String name) {
-			for (int i = 0; i < MAX_FONT_SCALE; i++) {
-				fonts[i] = new FontDescription.Resource(ElysiumVisuals.id(name + "_x" + (i + 1)));
+		/** @param fine also has fractional oversamples (faces used in scaled HUD elements) */
+		Face(String name, boolean fine) {
+			for (int q = 4; q <= MAX_Q; q += 4) {
+				byQuarter[q] = new FontDescription.Resource(ElysiumVisuals.id(name + "_x" + q / 4));
 			}
+			if (fine) {
+				for (int q = MIN_Q; q <= MAX_Q; q += q < 16 ? 1 : 2) {
+					if (q % 4 != 0) {
+						byQuarter[q] = new FontDescription.Resource(ElysiumVisuals.id(name + "_q" + q));
+					}
+				}
+			}
+		}
+
+		/** The available oversample (in quarters) closest to {@code q}. */
+		int snap(float q) {
+			int best = 4;
+			float bestDist = Float.MAX_VALUE;
+			for (int i = MIN_Q; i <= MAX_Q; i++) {
+				if (byQuarter[i] != null && Math.abs(i - q) < bestDist) {
+					bestDist = Math.abs(i - q);
+					best = i;
+				}
+			}
+			return best;
+		}
+
+		FontDescription font(int q) {
+			return byQuarter[q];
 		}
 	}
 
@@ -230,10 +266,43 @@ public final class RenderUtil {
 	// Text (Inter)
 	// ---------------------------------------------------------------------
 
+	/** Text in {@code face} for the current GUI scale (unscaled pose); used for measuring. */
 	public static Component styled(String s, Face face) {
-		int index = Math.min(MAX_FONT_SCALE, guiScale()) - 1;
-		FontDescription font = face.fonts[index];
+		return styled(s, face, Math.min(MAX_FONT_SCALE, guiScale()) * 4);
+	}
+
+	/** Text in {@code face} rasterized with oversample {@code q}/4. */
+	private static Component styled(String s, Face face, int q) {
+		FontDescription font = face.font(q);
 		return Component.literal(s).withStyle(style -> style.withFont(font));
+	}
+
+	/** Screen pixels per text unit under the current pose. */
+	private static float pixelsPerUnit(GuiGraphicsExtractor g) {
+		Matrix3x2f m = g.pose();
+		float scale = (float) Math.sqrt(Math.abs(m.m00() * m.m11() - m.m01() * m.m10()));
+		return scale * guiScale();
+	}
+
+	/**
+	 * Draws {@code text(q)} at (x, y) of the current pose with the font whose
+	 * oversample matches the actual pixel size (so texels land 1:1 on pixels),
+	 * starting on a whole screen pixel. Rotation in the pose is not supported
+	 * (nothing in the GUI rotates text).
+	 */
+	private static void drawText(GuiGraphicsExtractor g, IntFunction<Component> text, Face face, float x, float y, int color) {
+		int gui = guiScale();
+		int q = face.snap(pixelsPerUnit(g) * 4);
+		Vector2f origin = g.pose().transformPosition(x, y, new Vector2f());
+		float px = Math.round(origin.x * gui) / (float) gui;
+		float py = Math.round(origin.y * gui) / (float) gui;
+		float scale = q / 4f / gui;
+		g.pose().pushMatrix();
+		g.pose().identity();
+		g.pose().translate(px, py);
+		g.pose().scale(scale, scale);
+		g.text(font(), text.apply(q), 0, 0, color, false);
+		g.pose().popMatrix();
 	}
 
 	public static Component styled(String s, boolean bold) {
@@ -275,7 +344,7 @@ public final class RenderUtil {
 		int c = a(color);
 		// Text with an alpha this low is invisible anyway; skipping avoids artifacts.
 		if (ColorUtil.alpha(c) > 4) {
-			g.text(font(), styled(s, face), x, y, c, false);
+			drawText(g, q -> styled(s, face, q), face, x, y, c);
 		}
 	}
 
@@ -291,17 +360,17 @@ public final class RenderUtil {
 	public static void textRaw(GuiGraphicsExtractor g, String s, int x, int y, int color) {
 		int c = a(color);
 		if (ColorUtil.alpha(c) > 4) {
-			g.text(font(), raw(s), x, y, c, false);
+			drawText(g, q -> raw(s, q), Face.REGULAR, x, y, c);
 		}
 	}
 
 	/** Width of {@link #textRaw} text. */
 	public static int widthRaw(String s) {
-		return font().width(raw(s));
+		return font().width(raw(s, Math.min(MAX_FONT_SCALE, guiScale()) * 4));
 	}
 
-	private static Component raw(String s) {
-		return ((MutableComponent) styled(s, Face.REGULAR)).withStyle(style -> style.withInsertion(NameProtect.RAW));
+	private static Component raw(String s, int q) {
+		return ((MutableComponent) styled(s, Face.REGULAR, q)).withStyle(style -> style.withInsertion(NameProtect.RAW));
 	}
 
 	public static void centeredText(GuiGraphicsExtractor g, Font font, String s, int cx, int y, int color) {
@@ -309,23 +378,24 @@ public final class RenderUtil {
 	}
 
 	/** Extra space between caption letters, in physical pixels (the launcher's letter-spacing). */
-	private static int captionTracking() {
-		return Math.max(1, Math.round(guiScale() * 0.6f));
+	private static int captionTracking(float pixelsPerUnit) {
+		return Math.max(1, Math.round(pixelsPerUnit * 0.6f));
 	}
 
-	/** Advance of one caption glyph in whole physical pixels. */
-	private static int glyphPx(String ch, int scale) {
-		return Math.round(font().getSplitter().stringWidth(styled(ch, Face.SMALL)) * scale);
+	/** Advance of one caption glyph in whole physical pixels, with the font of oversample {@code q}/4. */
+	private static int glyphPx(String ch, int q) {
+		return Math.round(font().getSplitter().stringWidth(styled(ch, Face.SMALL, q)) * q / 4f);
 	}
 
 	/** Width of an upper-case, letter-spaced caption. */
 	public static int captionWidth(String s) {
 		String u = s.toUpperCase(Locale.ROOT);
 		int scale = guiScale();
+		int q = Math.min(MAX_FONT_SCALE, scale) * 4;
 		int px = 0;
 		for (int i = 0; i < u.length(); ) {
 			int cp = u.codePointAt(i);
-			px += glyphPx(new String(Character.toChars(cp)), scale) + (i > 0 ? captionTracking() : 0);
+			px += glyphPx(new String(Character.toChars(cp)), q) + (i > 0 ? captionTracking(scale) : 0);
 			i += Character.charCount(cp);
 		}
 		return (int) Math.ceil(px / (float) scale);
@@ -342,19 +412,27 @@ public final class RenderUtil {
 			return;
 		}
 		String u = s.toUpperCase(Locale.ROOT);
-		int scale = guiScale();
-		int tracking = captionTracking();
+		int gui = guiScale();
+		int q = Face.SMALL.snap(pixelsPerUnit(g) * 4);
+		float perUnit = q / 4f;
+		int tracking = captionTracking(perUnit);
+		// Laid out in whole screen pixels from a pixel-aligned origin, each letter in the font for its real size.
+		Vector2f origin = g.pose().transformPosition(x, y, new Vector2f());
+		int px0 = Math.round(origin.x * gui), py = Math.round(origin.y * gui);
+		float scale = perUnit / gui;
 		int offsetPx = 0;
 		Font font = font();
 		for (int i = 0; i < u.length(); ) {
 			int cp = u.codePointAt(i);
 			String ch = new String(Character.toChars(cp));
 			g.pose().pushMatrix();
-			g.pose().translate(offsetPx / (float) scale, 0);
-			g.text(font, styled(ch, Face.SMALL), x, y, c, false);
+			g.pose().identity();
+			g.pose().translate((px0 + offsetPx) / (float) gui, py / (float) gui);
+			g.pose().scale(scale, scale);
+			g.text(font, styled(ch, Face.SMALL, q), 0, 0, c, false);
 			g.pose().popMatrix();
 			// Advance in physical pixels: the glyph's own width plus the tracking.
-			offsetPx += glyphPx(ch, scale) + tracking;
+			offsetPx += glyphPx(ch, q) + tracking;
 			i += Character.charCount(cp);
 		}
 	}
