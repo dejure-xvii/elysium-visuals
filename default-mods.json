@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "minecraft": "26.2",
+  "loader": "fabric",
+  "mods": [
+    { "name": "Sodium", "project": "AANobbMI", "version": "xJZxADzI", "required": true },
+    { "name": "Iris Shaders", "project": "YL57xq9U", "version": "gxZWWnKH", "required": false },
+    { "name": "Entity Culling", "project": "NNAgCjsB", "version": "RWjup6Jf", "required": true },
+    { "name": "ImmediatelyFast", "project": "5ZwdcRci", "version": "pMWERcSu", "required": true },
+    { "name": "Mod Menu", "project": "mOgUt4GM", "version": "iRo7AZXf", "required": true },
+    { "name": "Punchy!", "project": "8aoMKplv", "version": "xXVSglFn", "required": true }
+  ]
+}

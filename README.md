@@ -69,6 +69,15 @@ git push origin v1.0.1
 
 Версия мода берётся из имени тега.
 
+## Моды по умолчанию в лаунчере
+
+[`default-mods.json`](default-mods.json) — список модов, которые Elysium Launcher ставит вместе с клиентом.
+Для каждого мода указаны ID проекта и версии на [Modrinth](https://modrinth.com) (Fabric, 26.2);
+лаунчер скачивает файлы только через Modrinth API и проверяет sha512, зависимости подтягивает сам
+(Fabric API ставится лаунчером отдельно). Чтобы обновить мод, замените `version` на ID новой версии
+и запушьте в `main` — лаунчер заменит файл при следующем запуске. `"required": false` — мод можно
+выключить во вкладке «Моды».
+
 ## Лицензия
 
 [CC0 1.0](LICENSE). Шрифт Inter распространяется под [SIL Open Font License](src/client/resources/assets/elysium-visuals/font/inter-ofl.txt).
