@@ -1,7 +1,6 @@
 package dev.elysium.visuals.client.module.impl.utils;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.elysium.visuals.client.module.Category;
 import dev.elysium.visuals.client.module.Module;
 import dev.elysium.visuals.client.module.ModuleManager;
@@ -97,24 +96,10 @@ public class DeathCoords extends Module {
 		float h = (float) (mc.level.getMaxY() - pos.getY());
 		PoseStack ps = ctx.poseStack();
 		ctx.submitNodeCollector().submitCustomGeometry(ps, WorldPipelines.glow(false), (pose, vc) -> {
-			pillar(pose, vc, x, y, z, 1.4f, h, GlowGeometry.scaleAlpha(color, 0.25f * pulse));
-			pillar(pose, vc, x, y, z, 0.45f, h, GlowGeometry.scaleAlpha(color, 0.8f));
+			GlowGeometry.pillar(pose, vc, x, y, z, 1.4f, h, GlowGeometry.scaleAlpha(color, 0.25f * pulse));
+			GlowGeometry.pillar(pose, vc, x, y, z, 0.45f, h, GlowGeometry.scaleAlpha(color, 0.8f));
 		});
 		ctx.submitNodeCollector().submitCustomGeometry(ps, ParticleRenderTypes.get(ParticleTexture.BLOOM, false), (pose, vc) ->
 				GlowGeometry.flatSprite(pose, vc, x, y + 0.03f, z, 2.6f, 2.6f, 0, GlowGeometry.scaleAlpha(color, 0.6f * pulse)));
-	}
-
-	/** A camera-facing vertical quad, bright at the bottom and fading out up high. */
-	private static void pillar(PoseStack.Pose pose, VertexConsumer vc, float x, float y, float z, float w, float h, int color) {
-		float len = (float) Math.sqrt(x * x + z * z);
-		if (len < 1e-4f) {
-			return;
-		}
-		float sx = -z / len * w * 0.5f, sz = x / len * w * 0.5f;
-		int top = color & 0x00FFFFFF;
-		vc.addVertex(pose, x - sx, y, z - sz).setColor(color);
-		vc.addVertex(pose, x + sx, y, z + sz).setColor(color);
-		vc.addVertex(pose, x + sx, y + h, z + sz).setColor(top);
-		vc.addVertex(pose, x - sx, y + h, z - sz).setColor(top);
 	}
 }

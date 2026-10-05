@@ -17,11 +17,22 @@ import dev.elysium.visuals.client.module.impl.farm.ToolGuard;
 import dev.elysium.visuals.client.module.impl.player.ArmorHud;
 import dev.elysium.visuals.client.module.impl.player.AutoTool;
 import dev.elysium.visuals.client.module.impl.player.AutoSprint;
+import dev.elysium.visuals.client.module.impl.player.AutoEventGps;
+import dev.elysium.visuals.client.module.impl.player.PvPHelper;
+import dev.elysium.visuals.client.module.impl.utils.BowOptimizer;
+import dev.elysium.visuals.client.module.impl.utils.CrystalOptimizer;
+import dev.elysium.visuals.client.module.impl.utils.RegionHelper;
 import dev.elysium.visuals.client.module.impl.player.HealthAlert;
 import dev.elysium.visuals.client.module.impl.player.ItemCounter;
 import dev.elysium.visuals.client.module.impl.player.NoFriendDamage;
 import dev.elysium.visuals.client.module.impl.render.Crosshair;
+import dev.elysium.visuals.client.module.impl.render.ChunkAnimator;
 import dev.elysium.visuals.client.module.impl.render.CustomPet;
+import dev.elysium.visuals.client.module.impl.render.FullBright;
+import dev.elysium.visuals.client.module.impl.render.NoCameraClip;
+import dev.elysium.visuals.client.module.impl.render.Shaders;
+import dev.elysium.visuals.client.module.impl.utils.Zoom;
+import dev.elysium.visuals.client.module.impl.utils.Gps;
 import dev.elysium.visuals.client.module.impl.render.CustomCrystal;
 import dev.elysium.visuals.client.module.impl.render.JumpCircle;
 import dev.elysium.visuals.client.module.impl.render.Keystrokes;
@@ -101,6 +112,10 @@ public final class ModuleManager {
 		register(new KillEffect());
 		register(new CustomPet());
 		register(new CustomCrystal());
+		register(new ChunkAnimator());
+		register(new FullBright());
+		register(new NoCameraClip());
+		register(new Shaders());
 
 		register(new Coordinates());
 		register(new FriendsModule());
@@ -129,6 +144,13 @@ public final class ModuleManager {
 		register(new ChatHelper());
 		register(new DeathCoords());
 		register(new Optimizer());
+		register(new Zoom());
+		register(new Gps());
+		register(new AutoEventGps());
+		register(new PvPHelper());
+		register(new BowOptimizer());
+		register(new CrystalOptimizer());
+		register(new RegionHelper());
 	}
 
 	public void init() {

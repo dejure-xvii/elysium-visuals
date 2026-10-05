@@ -2,7 +2,8 @@ package dev.elysium.visuals.client.mixin;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.elysium.visuals.client.module.impl.render.AspectRatio;
-import dev.elysium.visuals.client.module.impl.render.NoRender;
+import dev.elysium.visuals.client.module.impl.render.NoCameraClip;
+import dev.elysium.visuals.client.module.impl.utils.Zoom;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Projection;
@@ -12,10 +13,11 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** NoRender camera clip; AspectRatio (world projection and the matching culling frustum). */
+/** NoCameraClip (third person, near plane); Zoom (FOV); AspectRatio (world projection and the matching culling frustum). */
 @Mixin(Camera.class)
 public abstract class CameraMixin {
 	@Shadow
@@ -30,9 +32,21 @@ public abstract class CameraMixin {
 
 	@Inject(method = "getMaxZoom", at = @At("HEAD"), cancellable = true)
 	private void elysium$cameraClip(float cameraDist, CallbackInfoReturnable<Float> cir) {
-		if (NoRender.hides("camera_clip")) {
+		if (NoCameraClip.thirdPersonThroughBlocks()) {
 			cir.setReturnValue(cameraDist);
 		}
+	}
+
+	@Inject(method = "calculateFov", at = @At("RETURN"), cancellable = true)
+	private void elysium$zoom(float partialTicks, CallbackInfoReturnable<Float> cir) {
+		cir.setReturnValue(Zoom.applyFov(cir.getReturnValueF()));
+	}
+
+	/** First person against a wall: a closer near plane, so the block at the face isn't cut open. */
+	@ModifyVariable(method = "setupPerspective", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+	private float elysium$nearPlane(float zNear) {
+		return NoCameraClip.firstPersonThroughBlocks() && Minecraft.getInstance().options.getCameraType().isFirstPerson()
+				? Math.min(zNear, 0.01F) : zNear;
 	}
 
 	@Inject(method = "setupPerspective", at = @At("HEAD"), cancellable = true)

@@ -1,4 +1,4 @@
-﻿{
+{
 	"schemaVersion": 1,
 	"id": "elysium-visuals-test",
 	"version": "1.0.0",
@@ -6,6 +6,10 @@
 	"environment": "client",
 	"entrypoints": {
 		"fabric-client-gametest": [
+			"dev.elysium.visuals.test.Stage1GameTest",
+			"dev.elysium.visuals.test.Stage2GameTest",
+			"dev.elysium.visuals.test.Stage3GameTest",
+			"dev.elysium.visuals.test.Stage4GameTest",
 			"dev.elysium.visuals.test.NewModulesGameTest",
 			"dev.elysium.visuals.test.MainMenuGameTest",
 			"dev.elysium.visuals.test.CloudsGameTest",

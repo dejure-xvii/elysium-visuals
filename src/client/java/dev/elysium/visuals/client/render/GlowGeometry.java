@@ -70,6 +70,20 @@ public final class GlowGeometry {
 		sprite(pose, vc, cx, cy, cz, c * halfW, 0, s * halfW, -s * halfL, 0, c * halfL, color);
 	}
 
+	/** A camera-facing vertical quad (camera at the origin), bright at the bottom and fading out up high. */
+	public static void pillar(PoseStack.Pose pose, VertexConsumer vc, float x, float y, float z, float w, float h, int color) {
+		float len = (float) Math.sqrt(x * x + z * z);
+		if (len < 1e-4f) {
+			return;
+		}
+		float sx = -z / len * w * 0.5f, sz = x / len * w * 0.5f;
+		int top = color & 0x00FFFFFF;
+		vc.addVertex(pose, x - sx, y, z - sz).setColor(color);
+		vc.addVertex(pose, x + sx, y, z + sz).setColor(color);
+		vc.addVertex(pose, x + sx, y + h, z + sz).setColor(top);
+		vc.addVertex(pose, x - sx, y + h, z - sz).setColor(top);
+	}
+
 	/** Argb with its alpha multiplied by {@code f} (0..1). */
 	public static int scaleAlpha(int argb, float f) {
 		int a = Math.round((argb >>> 24) * Math.max(0f, Math.min(1f, f)));

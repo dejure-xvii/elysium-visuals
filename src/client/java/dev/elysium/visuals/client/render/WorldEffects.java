@@ -12,7 +12,7 @@ import net.minecraft.client.renderer.GameRenderer;
 
 /**
  * Full-screen passes over the finished world image (before the hand and the
- * HUD), in a fixed order: sky → 3D clouds → atmosphere → motion blur.
+ * HUD), in a fixed order: sky → 3D clouds → Shaders → atmosphere → motion blur.
  */
 public final class WorldEffects {
 	private static TextureTarget scratch;
@@ -24,6 +24,7 @@ public final class WorldEffects {
 	public static void init() {
 		CustomSky.init();
 		CloudRenderer3D.init();
+		ShadersRenderer.init();
 		Ambience.init();
 		MotionBlur.init();
 		Hands.init();
@@ -34,6 +35,7 @@ public final class WorldEffects {
 	public static void afterWorld(GameRenderer renderer) {
 		CustomSky.process(renderer);
 		CloudRenderer3D.process(renderer);
+		ShadersRenderer.process(renderer);
 		Ambience.process(renderer);
 		MotionBlur.process(renderer);
 		// Last: the finished world, as the hand will be drawn over it.

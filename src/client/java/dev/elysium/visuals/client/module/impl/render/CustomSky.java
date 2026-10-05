@@ -14,6 +14,7 @@ import dev.elysium.visuals.client.render.FullscreenPass;
 import dev.elysium.visuals.client.render.ThemeColors;
 import dev.elysium.visuals.client.render.WorldEffects;
 import dev.elysium.visuals.client.util.ColorUtil;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
@@ -27,8 +28,8 @@ import static dev.elysium.visuals.client.module.setting.MultiSelectSetting.optio
 /**
  * Shader sky: drawn over the pixels where the world left the sky visible. The
  * view direction comes from the camera's rotation and FOV, so the sky stays in
- * place while you look around. Optional volumetric 3D clouds
- * ({@link CloudRenderer3D}) replace the vanilla ones in any mode.
+ * place while you look around. The volumetric 3D clouds ({@link CloudRenderer3D})
+ * are an effect of {@link Shaders} now.
  */
 public class CustomSky extends Module {
 	private static final List<String> MODES = List.of("aurora", "sakura", "plasma", "plasma2", "northern", "night", "summer", "caustics");
@@ -51,25 +52,23 @@ public class CustomSky extends Module {
 	private final NumberSetting opacity = add(new NumberSetting("opacity", "Непрозрачность", 1, 0.05, 1, 0.05));
 	private final BooleanSetting themed = add(new BooleanSetting("themed", "В цвет темы", false));
 
-	// Volumetric clouds (any mode).
-	private final BooleanSetting clouds3d = add(new BooleanSetting("clouds_3d", "3D облака", false));
+	// The 3D clouds moved to Shaders; these keys stay hidden so an old config can be carried over once.
+	private final BooleanSetting clouds3d = add(new BooleanSetting("clouds_3d", "3D облака", false)).visibleWhen(() -> false);
 	private final NumberSetting cloudHeight = add(new NumberSetting("cloud_height", "Высота облаков", 192, 128, 320, 4, " бл."))
-			.visibleWhen(clouds3d::isOn);
+			.visibleWhen(() -> false);
 	private final NumberSetting cloudCoverage = add(new NumberSetting("cloud_coverage", "Покрытие неба", 0.5, 0.05, 1, 0.05))
-			.visibleWhen(clouds3d::isOn);
+			.visibleWhen(() -> false);
 	private final NumberSetting cloudWind = add(new NumberSetting("cloud_wind", "Скорость ветра", 1, 0, 3, 0.1, "x"))
-			.visibleWhen(clouds3d::isOn);
-	private final ModeSetting cloudQuality = add(new ModeSetting("cloud_quality", "Качество облаков",
-			List.of(option("low", "Низкое"), option("medium", "Среднее"), option("high", "Высокое")), "medium"))
-			.visibleWhen(clouds3d::isOn);
+			.visibleWhen(() -> false);
 	private final NumberSetting cloudDistance = add(new NumberSetting("cloud_distance", "Дальность облаков", 1024, 256, 2048, 64, " бл."))
-			.visibleWhen(clouds3d::isOn);
+			.visibleWhen(() -> false);
 
 	private final Matrix4f invViewProj = new Matrix4f();
 	private long startNs = System.nanoTime();
 
 	public CustomSky() {
 		super("custom_sky", "CustomSky", "Своё небо на шейдерах: аврора, сакура, плазма, звёзды…", Category.RENDER);
+		ClientTickEvents.END_CLIENT_TICK.register(mc -> migrateClouds());
 	}
 
 	public static void init() {
@@ -77,31 +76,20 @@ public class CustomSky extends Module {
 				64 + 16 * 5, BlendFunction.TRANSLUCENT);
 	}
 
-	// --- 3D clouds settings ---------------------------------------------------------
-
-	public boolean clouds3d() {
-		return clouds3d.isOn();
+	/** Old 3D cloud settings (from before they moved to Shaders). */
+	public record LegacyClouds(double height, double coverage, double wind, double distance) {
 	}
 
-	public double cloudHeight() {
-		return cloudHeight.get();
-	}
-
-	public double cloudCoverage() {
-		return cloudCoverage.get();
-	}
-
-	public double cloudWind() {
-		return cloudWind.get();
-	}
-
-	/** 0 = low, 1 = medium, 2 = high. */
-	public int cloudQuality() {
-		return cloudQuality.is("low") ? 0 : cloudQuality.is("high") ? 2 : 1;
-	}
-
-	public double cloudDistance() {
-		return cloudDistance.get();
+	/** Hands an old config's 3D clouds over to Shaders once (called every tick until done). */
+	private void migrateClouds() {
+		if (!clouds3d.isOn()) {
+			return;
+		}
+		Shaders shaders = Shaders.get();
+		if (shaders != null) {
+			shaders.migrateClouds(new LegacyClouds(cloudHeight.get(), cloudCoverage.get(), cloudWind.get(), cloudDistance.get()));
+			clouds3d.set(false);
+		}
 	}
 
 	public static void process(GameRenderer renderer) {

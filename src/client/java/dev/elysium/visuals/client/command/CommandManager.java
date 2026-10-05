@@ -2,9 +2,11 @@ package dev.elysium.visuals.client.command;
 
 import dev.elysium.visuals.ElysiumVisuals;
 import dev.elysium.visuals.client.Panic;
+import dev.elysium.visuals.client.command.impl.BlacklistCommand;
 import dev.elysium.visuals.client.command.impl.CfgCommand;
 import dev.elysium.visuals.client.command.impl.FakePlayerCommand;
 import dev.elysium.visuals.client.command.impl.FriendCommand;
+import dev.elysium.visuals.client.command.impl.GpsCommand;
 import dev.elysium.visuals.client.command.impl.HelpCommand;
 import dev.elysium.visuals.client.command.impl.PanicCommand;
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
@@ -39,6 +41,8 @@ public final class CommandManager {
 		register(new FriendCommand());
 		register(new FakePlayerCommand());
 		register(new PanicCommand());
+		register(new GpsCommand());
+		register(new BlacklistCommand());
 	}
 
 	public void init() {

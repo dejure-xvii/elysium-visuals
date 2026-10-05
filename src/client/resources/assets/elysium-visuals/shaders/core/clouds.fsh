@@ -12,7 +12,7 @@ layout(std140) uniform CloudInfo {
     vec4 Camera;
     // x: layer bottom (y), y: thickness, z: coverage 0..1 (with weather), w: density
     vec4 Layer;
-    // xy: wind offset (blocks), z: shape evolution, w: max distance (blocks)
+    // x: wind offset (blocks), y: 1 = blocky style, z: shape evolution, w: max distance (blocks)
     vec4 Wind;
     // xyz: direction to the sun or moon, w: daylight 0..1
     vec4 LightDir;
@@ -70,11 +70,18 @@ float coverageAt(vec2 xz) {
 
 // Extinction density at a world position (camera-relative y is absolute here).
 float density(vec3 p, bool detail) {
+    if (Wind.y > 0.5) {
+        // Blocky style: the density is constant inside 12x6x12 cells (like vanilla clouds, but in 3D).
+        vec3 cell = vec3(12.0, 6.0, 12.0);
+        vec3 shifted = p + vec3(Wind.x, 0.0, 0.0);
+        p = (floor(shifted / cell) + 0.5) * cell - vec3(Wind.x, 0.0, 0.0);
+        detail = false;
+    }
     float h = (p.y - Layer.x) / Layer.y;
     if (h <= 0.0 || h >= 1.0) {
         return 0.0;
     }
-    vec2 q = p.xz + Wind.xy;
+    vec2 q = p.xz + vec2(Wind.x, 0.0);
     float cov = coverageAt(q);
     if (cov <= 0.0) {
         return 0.0;
@@ -91,6 +98,10 @@ float density(vec3 p, bool detail) {
         vec4 n = noise3(vec3(q.x / 1.6, p.y / 1.6 - Wind.z * 2.0, q.y / 1.6));
         float erode = n.g * 0.625 + n.b * 0.25 + n.a * 0.125;
         d = clamp(remap(d, erode * mix(0.45, 0.2, h), 1.0, 0.0, 1.0), 0.0, 1.0);
+    }
+    if (Wind.y > 0.5) {
+        // Blocky: a cell is either cloud or air, so the boxes get crisp sides.
+        d = d > 0.12 ? 0.75 : 0.0;
     }
     return d * Layer.w;
 }

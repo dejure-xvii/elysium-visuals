@@ -8,6 +8,7 @@ import com.mojang.blaze3d.textures.GpuTextureView;
 import dev.elysium.visuals.ElysiumVisuals;
 import dev.elysium.visuals.client.module.ModuleManager;
 import dev.elysium.visuals.client.module.impl.render.CustomSky;
+import dev.elysium.visuals.client.module.impl.render.Shaders;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
@@ -19,7 +20,7 @@ import org.joml.Matrix4f;
 import java.util.List;
 
 /**
- * Volumetric clouds of CustomSky. After the world (and the custom sky) is
+ * Volumetric clouds (an effect of Shaders). After the world (and the custom sky) is
  * drawn, the clouds are raymarched at reduced resolution through a layer of
  * tileable Perlin-Worley noise, then upscaled with a depth-aware filter and
  * blended over the frame. While they are on, vanilla clouds aren't drawn.
@@ -58,11 +59,11 @@ public final class CloudRenderer3D {
 				"CompositeInfo", 64 + 16 * 2, BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA);
 	}
 
-	private static CustomSky settings() {
-		CustomSky m = ModuleManager.get().find(CustomSky.class);
+	private static Shaders settings() {
+		Shaders m = ModuleManager.get().find(Shaders.class);
 		Minecraft mc = Minecraft.getInstance();
 		boolean overworld = mc.level != null && mc.level.dimension() == Level.OVERWORLD;
-		return m != null && m.isEnabled() && m.clouds3d() && overworld ? m : null;
+		return m != null && m.clouds3d() && overworld ? m : null;
 	}
 
 	/** 3D clouds are drawn this frame (so vanilla clouds must not be). */
@@ -75,7 +76,7 @@ public final class CloudRenderer3D {
 		long now = Util.getMillis();
 		float dt = lastMs == 0 ? 0f : Math.min(0.25f, (now - lastMs) / 1000f);
 		lastMs = now;
-		CustomSky m = settings();
+		Shaders m = settings();
 		if (m == null || failed) {
 			return;
 		}
@@ -92,7 +93,7 @@ public final class CloudRenderer3D {
 		}
 	}
 
-	private static void render(GameRenderer renderer, CustomSky m) {
+	private static void render(GameRenderer renderer, Shaders m) {
 		RenderTarget main = renderer.mainRenderTarget();
 		GpuTextureView color = main.getColorTextureView(), depth = main.getDepthTextureView();
 		GpuTextureView noise = CloudNoise.view();
@@ -160,7 +161,7 @@ public final class CloudRenderer3D {
 				u -> u.putMat4f(invViewProj)
 						.putVec4(wrapX, (float) pos.y, wrapZ, (float) evolve)
 						.putVec4((float) m.cloudHeight(), thickness, coverage, density)
-						.putVec4((float) windX, 0f, (float) evolve, maxDist)
+						.putVec4((float) windX, m.cloudsBlocky() ? 1f : 0f, (float) evolve, maxDist)
 						.putVec4(lx / len, ly / len, 0f, day)
 						.putVec4(light[0], light[1], light[2], albedo)
 						.putVec4(top[0], top[1], top[2], q[1])

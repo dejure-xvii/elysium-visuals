@@ -1,6 +1,9 @@
 package dev.elysium.visuals.client.mixin;
 
+import dev.elysium.visuals.client.module.impl.player.AutoEventGps;
+import dev.elysium.visuals.client.module.impl.player.PvPHelper;
 import dev.elysium.visuals.client.module.impl.utils.ChatHelper;
+import dev.elysium.visuals.client.module.impl.utils.RegionHelper;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.multiplayer.chat.GuiMessageSource;
 import net.minecraft.client.multiplayer.chat.GuiMessageTag;
@@ -13,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** ChatHelper: messages that mention you are re-added highlighted, with a colored marker. */
+/** ChatHelper: messages that mention you are re-added highlighted, with a colored marker. AutoEventGPS reads events. PvPHelper hides black-listed players. */
 @Mixin(ChatComponent.class)
 abstract class ChatComponentMixin {
 	@Unique
@@ -29,6 +32,12 @@ abstract class ChatComponentMixin {
 		if (elysium$readding || source == GuiMessageSource.SYSTEM_CLIENT) {
 			return;
 		}
+		if (PvPHelper.hides(message)) {
+			ci.cancel();
+			return;
+		}
+		AutoEventGps.onChat(message);
+		RegionHelper.onChat(message);
 		Component highlighted = ChatHelper.highlight(message);
 		if (highlighted == null) {
 			return;

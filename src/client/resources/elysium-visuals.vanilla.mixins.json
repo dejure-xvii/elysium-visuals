@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "dev.elysium.visuals.client.mixin.vanilla",
+	"plugin": "dev.elysium.visuals.client.mixin.vanilla.NoSodiumMixinPlugin",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"LevelRendererChunkMixin",
+		"RenderSectionAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

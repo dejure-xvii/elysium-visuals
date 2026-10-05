@@ -27,6 +27,12 @@ public abstract class MultiPlayerGameModeMixin {
 		}
 	}
 
+	/** CrystalOptimizer: the hit crystal disappears on the client at once. */
+	@Inject(method = "attack", at = @At("TAIL"))
+	private void elysium$crystalOptimizer(Player player, Entity entity, CallbackInfo ci) {
+		dev.elysium.visuals.client.module.impl.utils.CrystalOptimizer.onAttacked(entity);
+	}
+
 	@WrapWithCondition(method = "attack", at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V"))
 	private boolean elysium$fakeAttack(ClientPacketListener connection, Packet<?> packet, Player player, Entity entity) {

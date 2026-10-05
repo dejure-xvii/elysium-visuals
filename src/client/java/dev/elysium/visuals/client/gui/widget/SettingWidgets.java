@@ -3,6 +3,7 @@ package dev.elysium.visuals.client.gui.widget;
 import dev.elysium.visuals.client.module.setting.ActionSetting;
 import dev.elysium.visuals.client.module.setting.BooleanSetting;
 import dev.elysium.visuals.client.module.setting.ColorSetting;
+import dev.elysium.visuals.client.module.setting.KeySetting;
 import dev.elysium.visuals.client.module.setting.ModeSetting;
 import dev.elysium.visuals.client.module.setting.MultiSelectSetting;
 import dev.elysium.visuals.client.module.setting.NumberSetting;
@@ -20,6 +21,7 @@ public final class SettingWidgets {
 			case ActionSetting a -> new ThemedButton(a::label, a::run).rowHeight(18);
 			case BooleanSetting b -> new ToggleSwitch(b.name(), b::isOn, b::set);
 			case NumberSetting n -> new SliderWidget(n);
+			case KeySetting k -> new BindButton(k);
 			case ColorSetting c -> new ColorSettingWidget(c);
 			case MultiSelectSetting m -> new MultiSelectWidget(m);
 			case ModeSetting m -> new ModeWidget(m);

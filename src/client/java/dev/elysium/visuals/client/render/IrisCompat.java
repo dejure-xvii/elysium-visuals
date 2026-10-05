@@ -14,11 +14,21 @@ public final class IrisCompat {
 	private static Method instance;
 	private static Method shaderPackInUse;
 	private static boolean lookedUp;
+	/** Game tests only: pretend a shader pack is (or isn't) active; null = ask Iris. */
+	private static Boolean testOverride;
 
 	private IrisCompat() {
 	}
 
+	/** Game tests only. */
+	public static void overrideForTests(Boolean inUse) {
+		testOverride = inUse;
+	}
+
 	public static boolean shaderPackInUse() {
+		if (testOverride != null) {
+			return testOverride;
+		}
 		if (!lookedUp) {
 			lookedUp = true;
 			if (FabricLoader.getInstance().isModLoaded("iris")) {

@@ -60,6 +60,12 @@ dependencies {
 	if (!project.hasProperty("noPunchy")) {
 		gametestRuntimeOnly "maven.modrinth:punchy-fpa:${project.punchy_version}"
 	}
+
+	// Sodium is optional: compiled against for the compat mixins; `-Psodium` runs the game tests with it.
+	compileOnly "maven.modrinth:sodium:${project.sodium_version}"
+	if (project.hasProperty("sodium")) {
+		gametestRuntimeOnly "maven.modrinth:sodium:${project.sodium_version}"
+	}
 }
 
 processResources {

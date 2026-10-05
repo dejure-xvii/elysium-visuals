@@ -3,7 +3,8 @@ package dev.elysium.visuals.test;
 import dev.elysium.visuals.client.module.Module;
 import dev.elysium.visuals.client.module.ModuleManager;
 import dev.elysium.visuals.client.module.impl.render.CustomSky;
-import dev.elysium.visuals.client.module.setting.BooleanSetting;
+import dev.elysium.visuals.client.module.impl.render.Shaders;
+import dev.elysium.visuals.client.module.setting.MultiSelectSetting;
 import dev.elysium.visuals.client.module.setting.ModeSetting;
 import dev.elysium.visuals.client.module.setting.Setting;
 import dev.elysium.visuals.client.render.CloudRenderer3D;
@@ -12,7 +13,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 
 /**
- * CustomSky's volumetric clouds: day, sunset, night, rain and thunder, from
+ * The volumetric clouds (a Shaders effect, under CustomSky's summer sky): day, sunset, night, rain and thunder, from
  * below, inside the layer and above, at low and high quality, in another sky
  * mode, and vanilla clouds back when they are off. Screenshots:
  * build/run/clientGameTest/screenshots/clouds-*.png
@@ -36,8 +37,9 @@ public class CloudsGameTest implements FabricClientGameTest {
 				}
 				CustomSky sky = ModuleManager.get().find(CustomSky.class);
 				mode(sky, "mode").set("summer");
-				((BooleanSetting) setting(sky, "clouds_3d")).set(true);
 				sky.setEnabled(true);
+				clouds(true);
+				Shaders.get().setEnabled(true);
 			});
 			context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_F1); // clean shots, no HUD
 			// The noise is generated in the background on first use.
@@ -64,11 +66,11 @@ public class CloudsGameTest implements FabricClientGameTest {
 			}
 			// Inside a dense cloud: full coverage, middle of the layer -> soft fog all around.
 			context.runOnClient(mc -> ((dev.elysium.visuals.client.module.setting.NumberSetting)
-					setting(ModuleManager.get().find(CustomSky.class), "cloud_coverage")).set(1.0));
+					setting(Shaders.get(), "cloud_coverage")).set(1.0));
 			look(context, world, HEIGHT + 25, 0);
 			shoot(context, world, "fly-inside-dense", 6000, "clear");
 			context.runOnClient(mc -> ((dev.elysium.visuals.client.module.setting.NumberSetting)
-					setting(ModuleManager.get().find(CustomSky.class), "cloud_coverage")).set(0.5));
+					setting(Shaders.get(), "cloud_coverage")).set(0.5));
 			// Above the clouds, looking down.
 			look(context, world, HEIGHT + 220, 35);
 			shoot(context, world, "above", 6000, "clear");
@@ -76,10 +78,10 @@ public class CloudsGameTest implements FabricClientGameTest {
 
 			look(context, world, 64, -25);
 			for (String quality : new String[]{"low", "high"}) {
-				context.runOnClient(mc -> mode(ModuleManager.get().find(CustomSky.class), "cloud_quality").set(quality));
+				context.runOnClient(mc -> mode(Shaders.get(), "quality").set(quality));
 				shoot(context, world, "quality-" + quality, 6000, "clear");
 			}
-			context.runOnClient(mc -> mode(ModuleManager.get().find(CustomSky.class), "cloud_quality").set("medium"));
+			context.runOnClient(mc -> mode(Shaders.get(), "quality").set("medium"));
 
 			// Cost: FPS on the same view with clouds off and at each quality (no frame cap, no vsync).
 			int prevLimit = context.computeOnClient(mc -> mc.options.framerateLimit().get());
@@ -92,10 +94,9 @@ public class CloudsGameTest implements FabricClientGameTest {
 			world.getServer().runCommand("time set 6000");
 			for (String q : new String[]{"off", "low", "medium", "high"}) {
 				context.runOnClient(mc -> {
-					CustomSky sky = ModuleManager.get().find(CustomSky.class);
-					((BooleanSetting) setting(sky, "clouds_3d")).set(!q.equals("off"));
+					clouds(!q.equals("off"));
 					if (!q.equals("off")) {
-						mode(sky, "cloud_quality").set(q);
+						mode(Shaders.get(), "quality").set(q);
 					}
 				});
 				context.waitTicks(60);
@@ -103,9 +104,8 @@ public class CloudsGameTest implements FabricClientGameTest {
 				System.out.println("[CloudsGameTest] fps " + q + " = " + fps);
 			}
 			context.runOnClient(mc -> {
-				CustomSky sky = ModuleManager.get().find(CustomSky.class);
-				((BooleanSetting) setting(sky, "clouds_3d")).set(true);
-				mode(sky, "cloud_quality").set("medium");
+				clouds(true);
+				mode(Shaders.get(), "quality").set("medium");
 			});
 			context.runOnClient(mc -> {
 				mc.options.framerateLimit().set(prevLimit);
@@ -118,7 +118,7 @@ public class CloudsGameTest implements FabricClientGameTest {
 			context.runOnClient(mc -> mode(ModuleManager.get().find(CustomSky.class), "mode").set("summer"));
 
 			// Off: vanilla clouds again.
-			context.runOnClient(mc -> ((BooleanSetting) setting(ModuleManager.get().find(CustomSky.class), "clouds_3d")).set(false));
+			context.runOnClient(mc -> clouds(false));
 			context.waitTicks(5);
 			if (context.computeOnClient(mc -> CloudRenderer3D.active())) {
 				throw new AssertionError("3D clouds must stop when switched off");
@@ -126,7 +126,10 @@ public class CloudsGameTest implements FabricClientGameTest {
 			shoot(context, world, "off-vanilla", 6000, "clear");
 
 			context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_F1);
-			context.runOnClient(mc -> ModuleManager.get().find(CustomSky.class).setEnabled(false));
+			context.runOnClient(mc -> {
+				ModuleManager.get().find(CustomSky.class).setEnabled(false);
+				Shaders.get().setEnabled(false);
+			});
 		}
 		context.getInput().resizeWindow(854, 480);
 	}
@@ -149,6 +152,11 @@ public class CloudsGameTest implements FabricClientGameTest {
 		boolean on = context.computeOnClient(mc -> CloudRenderer3D.active());
 		System.out.println("[CloudsGameTest] " + name + " 3d=" + on);
 		context.takeScreenshot("clouds-" + name);
+	}
+
+	/** Only the clouds among the Shaders effects, so the shots compare with earlier ones. */
+	private static void clouds(boolean on) {
+		((MultiSelectSetting) setting(Shaders.get(), "effects")).set(on ? java.util.Set.of("clouds") : java.util.Set.of());
 	}
 
 	private static Setting<?> setting(Module m, String id) {

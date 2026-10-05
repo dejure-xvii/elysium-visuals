@@ -21,11 +21,15 @@
 - **HUD**: ватермарка, таргет, бинды, эффекты, задержки, друзья, броня, координаты, информация о сервере и мире.
 - **Render**: CustomSky, Ambience, Hands, TargetESP, Trail, JumpCircle, KillEffect, LootBeams, Particles,
   MotionBlur, Predictions, BlockOverlay, Crosshair, SwingAnimation, ViewModel, ShulkerPreview, NoRender,
-  CustomPet, CustomCrystal, Optimizer и др.
-- **Player**: AutoSprint, AutoTool, Armor HUD, Item Counter, Health Alert, NoFriendDamage.
+  CustomPet, CustomCrystal, Optimizer, ChunkAnimator, FullBright, NoCameraClip и др.
+- **Shaders** (Render): встроенные шейдеры — отражения, небо, объёмные облака, лучи света, AO, блум,
+  тонмаппинг, автоэкспозиция, подводный туман, глубина резкости, хроматическая аберрация, резкость, мокрота;
+  пресеты качества. С шейдерпаком Iris выключается сам.
+- **Player**: AutoSprint, AutoTool, Armor HUD, Item Counter, Health Alert, NoFriendDamage, AutoEventGPS, PvPHelper.
 - **Farm**: Loot Tracker, Session Timer, Tool Guard, Inventory Full, AutoCraft.
 - **Utils**: друзья, уведомления, NameProtect, Death Point, ItemScroller, AutoAccept, FakePlayer, LockSlot,
-  ChatHelper, DeathCoords и др.
+  ChatHelper, DeathCoords, GPS (`.gps <x> <z>`), Zoom, BowOptimizer, CrystalOptimizer, RegionHelper и др.
+- **Sodium** поддерживается: ChunkAnimator встраивается в шейдер терраина Sodium, остальное работает как есть.
 - **Главное меню** в стиле лаунчера: 360°-панорамы (Лес, Река, Горы, Ночное небо, Закат), анимированный градиент
   и свои PNG/JPG из `config/elysium-visuals/backgrounds`. Модуль MainMenu возвращает ванильное меню.
 - **Аккаунты**: офлайн и Microsoft, смена аккаунта без перезапуска, общий список с Elysium Launcher.
@@ -58,6 +62,8 @@
 | `.cfg <save\|load\|remove\|reset\|list> [имя]` | управление конфигами |
 | `.friend <add\|remove\|list> [ник]` | список друзей |
 | `.fakeplayer <spawn\|remove>` | локальная копия игрока для проверки эффектов |
+| `.gps <x> <z>`, `.gps off` | метка GPS: стрелка с расстоянием и столб света |
+| `.blacklist <add\|remove\|list> [ник]` | чёрный список чата (PvPHelper) |
 | `.panic` | полностью скрыть клиент до перезапуска игры |
 
 ## Сборка из исходников

@@ -2,7 +2,7 @@ package dev.elysium.visuals.client.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.elysium.visuals.client.module.impl.render.Hands;
-import dev.elysium.visuals.client.module.impl.render.NoRender;
+import dev.elysium.visuals.client.module.impl.render.NoCameraClip;
 import dev.elysium.visuals.client.render.HudBlur;
 import dev.elysium.visuals.client.render.WorldEffects;
 import net.minecraft.client.DeltaTracker;
@@ -13,13 +13,20 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** NoRender hurt camera; post effects that run on the finished world image. */
+/** NoCameraClip camera shake (damage, walking); post effects that run on the finished world image. */
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin {
 	@Inject(method = "bobHurt", at = @At("HEAD"), cancellable = true)
 	private void elysium$noHurtCam(CameraRenderState cameraState, PoseStack poseStack, CallbackInfo ci) {
 		// Keep the death tilt; only the shake on damage goes away.
-		if (NoRender.hides("hurt_cam") && !cameraState.entityRenderState.isDeadOrDying) {
+		if (!NoCameraClip.hurtShake() && !cameraState.entityRenderState.isDeadOrDying) {
+			ci.cancel();
+		}
+	}
+
+	@Inject(method = "bobView", at = @At("HEAD"), cancellable = true)
+	private void elysium$noWalkBob(CameraRenderState cameraState, PoseStack poseStack, CallbackInfo ci) {
+		if (!NoCameraClip.walkBob()) {
 			ci.cancel();
 		}
 	}

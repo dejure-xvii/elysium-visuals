@@ -28,6 +28,10 @@
 		{
 			"config": "elysium-visuals.punchy.mixins.json",
 			"environment": "client"
+		},
+		{
+			"config": "elysium-visuals.vanilla.mixins.json",
+			"environment": "client"
 		}
 	],
 	"depends": {
