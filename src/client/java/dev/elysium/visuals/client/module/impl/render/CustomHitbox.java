@@ -47,8 +47,6 @@ public class CustomHitbox extends Module {
     private final ScreenProjector projector = new ScreenProjector();
     private final float[] sx = new float[8];
     private final float[] sy = new float[8];
-    private final float[] ex = new float[4];
-    private final float[] ey = new float[4];
 
     public CustomHitbox() {
         super("custom_hitbox", "CustomHitbox", "3D-хитбокс с настройкой цвета, толщины, заливки и линии глаз", Category.RENDER);
@@ -62,6 +60,7 @@ public class CustomHitbox extends Module {
         }
         double max = range.floatValue() * range.floatValue();
         Vec3 cam = mc.player.getEyePosition(partialTick);
+        Vec3 look = mc.player.getViewVector(partialTick);
         projector.begin(g.guiWidth(), g.guiHeight());
         int drawn = 0;
         for (Entity e : mc.level.entitiesForRendering()) {
@@ -73,69 +72,102 @@ public class CustomHitbox extends Module {
             }
             Vec3 pos = e.getPosition(partialTick);
             AABB b = e.getBoundingBox().move(pos.subtract(e.position()));
-            if (drawBox(g, b, e.getEyeHeight(), cam) && ++drawn >= MAX_ENTITIES) {
+            if (drawBox(g, b, e.getEyeHeight(), cam, look) && ++drawn >= MAX_ENTITIES) {
                 break;
             }
         }
     }
 
-    private boolean drawBox(GuiGraphicsExtractor g, AABB b, float eyeHeight, Vec3 cam) {
-        // Проецируем 8 углов; если хоть один за камерой — пропускаем сущность.
-        for (int i = 0; i < 8; i++) {
-            double x = (i & 1) == 0 ? b.minX : b.maxX;
-            double y = (i & 2) == 0 ? b.minY : b.maxY;
-            double z = (i & 4) == 0 ? b.minZ : b.maxZ;
-            if (!projector.project(x, y, z)) {
-                return false;
-            }
-            sx[i] = (float) projector.x;
-            sy[i] = (float) projector.y;
-        }
+    private static final double NEAR = 0.1;
 
+    private final double[] cx = new double[8];
+    private final double[] cy = new double[8];
+    private final double[] cz = new double[8];
+
+    private boolean drawBox(GuiGraphicsExtractor g, AABB b, float eyeHeight, Vec3 cam, Vec3 look) {
         float th = thickness.floatValue();
         int line = color.argb() | 0xFF000000;
+        boolean allFront = true;
+        boolean anyFront = false;
+        for (int i = 0; i < 8; i++) {
+            cx[i] = (i & 1) == 0 ? b.minX : b.maxX;
+            cy[i] = (i & 2) == 0 ? b.minY : b.maxY;
+            cz[i] = (i & 4) == 0 ? b.minZ : b.maxZ;
+            boolean front = depth(cx[i], cy[i], cz[i], cam, look) > NEAR;
+            allFront &= front;
+            anyFront |= front;
+        }
+        if (!anyFront) {
+            return false;
+        }
 
-        // Заливка только видимых (лицевых) граней — они не перекрываются на экране.
-        if (fill.isOn()) {
-            int fc = ColorUtil.withAlpha(color.argb(), Math.round(fillAlpha.floatValue() / 100f * 255));
-            boolean[] visible = {
-                    cam.x < b.minX, cam.x > b.maxX,
-                    cam.y < b.minY, cam.y > b.maxY,
-                    cam.z < b.minZ, cam.z > b.maxZ
-            };
-            for (int f = 0; f < 6; f++) {
-                if (visible[f]) {
-                    fillQuad(g, FACES[f], fc);
+        // Заливку рисуем только когда все углы перед камерой (иначе грань пришлось бы обрезать полигоном).
+        if (fill.isOn() && allFront) {
+            for (int i = 0; i < 8; i++) {
+                if (!projector.project(cx[i], cy[i], cz[i])) {
+                    allFront = false;
+                    break;
+                }
+                sx[i] = (float) projector.x;
+                sy[i] = (float) projector.y;
+            }
+            if (allFront) {
+                int fc = ColorUtil.withAlpha(color.argb(), Math.round(fillAlpha.floatValue() / 100f * 255));
+                boolean[] visible = {
+                        cam.x < b.minX, cam.x > b.maxX,
+                        cam.y < b.minY, cam.y > b.maxY,
+                        cam.z < b.minZ, cam.z > b.maxZ
+                };
+                for (int f = 0; f < 6; f++) {
+                    if (visible[f]) {
+                        fillQuad(g, FACES[f], fc);
+                    }
                 }
             }
         }
 
-        // 12 рёбер параллелепипеда.
-        for (int[] edge : EDGES) {
-            drawLine(g, sx[edge[0]], sy[edge[0]], sx[edge[1]], sy[edge[1]], th, line);
+        // 12 рёбер: каждое обрезается по ближней плоскости в мировых координатах и только потом проецируется.
+        for (int[] e : EDGES) {
+            edge(g, cx[e[0]], cy[e[0]], cz[e[0]], cx[e[1]], cy[e[1]], cz[e[1]], cam, look, th, line);
         }
 
-        // Линия глаз: горизонтальный контур вокруг бокса на высоте глаз.
         if (eyeLine.isOn()) {
             double y = b.minY + eyeHeight;
-            boolean ok = true;
-            for (int i = 0; i < 4 && ok; i++) {
-                double x = (i & 1) == 0 ? b.minX : b.maxX;
-                double z = (i & 2) == 0 ? b.minZ : b.maxZ;
-                ok = projector.project(x, y, z);
-                ex[i] = (float) projector.x;
-                ey[i] = (float) projector.y;
-            }
-            if (ok) {
-                int ec = eyeColor.argb() | 0xFF000000;
-                // углы: 0=(minX,minZ) 1=(maxX,minZ) 2=(minX,maxZ) 3=(maxX,maxZ)
-                drawLine(g, ex[0], ey[0], ex[1], ey[1], th, ec);
-                drawLine(g, ex[1], ey[1], ex[3], ey[3], th, ec);
-                drawLine(g, ex[3], ey[3], ex[2], ey[2], th, ec);
-                drawLine(g, ex[2], ey[2], ex[0], ey[0], th, ec);
-            }
+            int ec = eyeColor.argb() | 0xFF000000;
+            edge(g, b.minX, y, b.minZ, b.maxX, y, b.minZ, cam, look, th, ec);
+            edge(g, b.maxX, y, b.minZ, b.maxX, y, b.maxZ, cam, look, th, ec);
+            edge(g, b.maxX, y, b.maxZ, b.minX, y, b.maxZ, cam, look, th, ec);
+            edge(g, b.minX, y, b.maxZ, b.minX, y, b.minZ, cam, look, th, ec);
         }
         return true;
+    }
+
+    private static double depth(double x, double y, double z, Vec3 cam, Vec3 look) {
+        return (x - cam.x) * look.x + (y - cam.y) * look.y + (z - cam.z) * look.z;
+    }
+
+    private void edge(GuiGraphicsExtractor g, double x1, double y1, double z1, double x2, double y2, double z2,
+                      Vec3 cam, Vec3 look, float th, int argb) {
+        double d1 = depth(x1, y1, z1, cam, look);
+        double d2 = depth(x2, y2, z2, cam, look);
+        if (d1 <= NEAR && d2 <= NEAR) {
+            return;
+        }
+        if (d1 <= NEAR) {
+            double t = (NEAR - d1) / (d2 - d1);
+            x1 += (x2 - x1) * t; y1 += (y2 - y1) * t; z1 += (z2 - z1) * t;
+        } else if (d2 <= NEAR) {
+            double t = (NEAR - d2) / (d1 - d2);
+            x2 += (x1 - x2) * t; y2 += (y1 - y2) * t; z2 += (z1 - z2) * t;
+        }
+        if (!projector.project(x1, y1, z1)) {
+            return;
+        }
+        float ax = (float) projector.x, ay = (float) projector.y;
+        if (!projector.project(x2, y2, z2)) {
+            return;
+        }
+        drawLine(g, ax, ay, (float) projector.x, (float) projector.y, th, argb);
     }
 
     /** Линия толщиной th из квадратиков, идущих вдоль отрезка. */
@@ -153,7 +185,7 @@ public class CustomHitbox extends Module {
         }
         float len = (float) Math.sqrt(dx * dx + dy * dy);
         // Шаг = толщина (квадраты касаются), число точек ограничено сверху.
-        int n = Math.min(16, Math.max(1, (int) Math.ceil(len / Math.max(1f, th))));
+        int n = Math.min(48, Math.max(1, (int) Math.ceil(len / Math.max(1.5f, th))));
         for (int i = 0; i <= n; i++) {
             float t = (float) i / n;
             RenderUtil.roundedRect(g, x1 + dx * t - half, y1 + dy * t - half, th, th, 0f, argb);
