@@ -39,7 +39,7 @@ public class CustomHitbox extends Module {
     private final NumberSetting range = add(new NumberSetting("range", "Дальность", 32, 8, 64, 4, " бл."));
     private final ColorSetting color = add(new ColorSetting("color", "Цвет хитбокса", 0xFFB48CFF));
     private final NumberSetting thickness = add(new NumberSetting("thickness", "Толщина линий", 1.5, 0.5, 4, 0.5, " px"));
-    private final BooleanSetting fill = add(new BooleanSetting("fill", "Заливка", true));
+    private final BooleanSetting fill = add(new BooleanSetting("fill", "Заливка", false));
     private final NumberSetting fillAlpha = add(new NumberSetting("fill_alpha", "Прозрачность заливки", 25, 5, 100, 5, " %")).visibleWhen(fill::isOn);
     private final BooleanSetting eyeLine = add(new BooleanSetting("eye_line", "Линия глаз", true));
     private final ColorSetting eyeColor = add(new ColorSetting("eye_color", "Цвет линии глаз", 0xFFFF5C7A)).visibleWhen(eyeLine::isOn);
@@ -153,7 +153,7 @@ public class CustomHitbox extends Module {
         }
         float len = (float) Math.sqrt(dx * dx + dy * dy);
         // Шаг = толщина (квадраты касаются), число точек ограничено сверху.
-        int n = Math.min(80, Math.max(1, (int) Math.ceil(len / Math.max(1f, th))));
+        int n = Math.min(16, Math.max(1, (int) Math.ceil(len / Math.max(1f, th))));
         for (int i = 0; i <= n; i++) {
             float t = (float) i / n;
             RenderUtil.roundedRect(g, x1 + dx * t - half, y1 + dy * t - half, th, th, 0f, argb);
@@ -168,7 +168,7 @@ public class CustomHitbox extends Module {
             maxY = Math.max(maxY, sy[i]);
         }
         // Не больше ~32 полосок на грань: высота полоски растёт с размером грани.
-        float rowH = Math.max(1f, (maxY - minY) / 32f);
+        float rowH = Math.max(1f, (maxY - minY) / 8f);
         for (float y = (float) Math.floor(minY); y <= maxY; y += rowH) {
             float yc = y + rowH * 0.5f;
             float left = Float.MAX_VALUE, right = -Float.MAX_VALUE;
