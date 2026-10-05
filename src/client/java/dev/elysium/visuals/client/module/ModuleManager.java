@@ -9,6 +9,7 @@ import dev.elysium.visuals.client.module.impl.farm.InventoryAlert;
 import dev.elysium.visuals.client.module.impl.farm.AutoCraft;
 import dev.elysium.visuals.client.module.impl.utils.LockSlot;
 import dev.elysium.visuals.client.module.impl.utils.ChatHelper;
+import dev.elysium.visuals.client.module.impl.render.CustomHitbox;
 import dev.elysium.visuals.client.module.impl.utils.DeathCoords;
 import dev.elysium.visuals.client.module.impl.render.Optimizer;
 import dev.elysium.visuals.client.module.impl.farm.LootTracker;
@@ -112,6 +113,7 @@ public final class ModuleManager {
 		register(new KillEffect());
 		register(new CustomPet());
 		register(new CustomCrystal());
+		register(new CustomHitbox());
 		register(new ChunkAnimator());
 		register(new FullBright());
 		register(new NoCameraClip());
