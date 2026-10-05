@@ -59,6 +59,11 @@ public final class ShadersRenderer {
 	private static boolean failed;
 
 	private static float wet;
+	/** Puddle size under the drops, 0..1 (1 without drops). */
+	private static float puddleGrowth = 1;
+	/** Ripple strength on puddles (follows the drop density, fades). */
+	private static float drops;
+	private static boolean wasDropping;
 	private static long lastMs;
 	private static int frame;
 	private static final Matrix4f invViewProj = new Matrix4f();
@@ -98,11 +103,24 @@ public final class ShadersRenderer {
 		if (m == null || failed || mc.level == null) {
 			return;
 		}
-		boolean wetWanted = m.effect("wet") && !IrisCompat.shaderPackInUse();
+		boolean dropping = m.effect("drops") && !IrisCompat.shaderPackInUse();
+		// Drops make the ground wet too, even without the "Мокрота" effect.
+		boolean wetWanted = (m.effect("wet") || dropping) && !IrisCompat.shaderPackInUse();
 		wet += ((wetWanted ? 1f : 0f) - wet) * (1f - (float) Math.exp(-WET_SPEED * dt));
 		if (!wetWanted && wet < 0.002f) {
 			wet = 0;
 		}
+		// Under the drops the puddles start from nothing and spread (~30 s at 1x); the ripples fade in and out.
+		if (dropping) {
+			if (!wasDropping) {
+				puddleGrowth = 0;
+			}
+			puddleGrowth += (1f - puddleGrowth) * (1f - (float) Math.exp(-dt * m.puddleSpeed() / 12f));
+		} else {
+			puddleGrowth = 1;
+		}
+		wasDropping = dropping;
+		drops += ((dropping ? m.dropsDensity() : 0f) - drops) * (1f - (float) Math.exp(-WET_SPEED * dt));
 		if (!active()) {
 			return;
 		}
@@ -117,6 +135,11 @@ public final class ShadersRenderer {
 	/** True after a GPU error switched the passes off (for tests). */
 	public static boolean failed() {
 		return failed;
+	}
+
+	/** Puddle size under the drops 0..1 (for tests). */
+	public static float puddleGrowth() {
+		return puddleGrowth;
 	}
 
 	/** Wetness 0..1 as it fades in and dries (for tests). */
@@ -212,12 +235,12 @@ public final class ShadersRenderer {
 					.putVec4(texW, texH, zz, fr)
 					.putVec4(lx, ly, 0f, day)
 					.putVec4(sun[0] * sunPower, sun[1] * sunPower, sun[2] * sunPower, sunUp ? 1f : 0f)
-					.putVec4(sunScreen[0], sunScreen[1], sunScreen[2], 0f)
+					.putVec4(sunScreen[0], sunScreen[1], sunScreen[2], drops)
 					.putVec4(ARGB.red(skyRgb) / 255f, ARGB.green(skyRgb) / 255f, ARGB.blue(skyRgb) / 255f, rain)
 					.putVec4(ARGB.red(waterRgb) / 255f, ARGB.green(waterRgb) / 255f, ARGB.blue(waterRgb) / 255f, underwater ? 1f : 0f)
 					.putVec4(m.reflectStrength(), m.reflectDistance(), m.raysStrength(), m.aoStrength())
 					.putVec4(m.bloomStrength(), m.bloomThreshold(), m.exposureStrength(), on ? m.saturation() : 1f)
-					.putVec4(wet, m.puddles(), m.qualityIndex(), m.wetStrength())
+					.putVec4(wet, m.puddles() * puddleGrowth, m.qualityIndex(), m.wetStrength())
 					.putVec4(b(f.reflections()), b(f.rays()), b(f.ao()), b(f.wet()))
 					.putVec4(b(f.bloom()), b(f.tonemap()), b(f.exposure()), b(f.underwater()))
 					.putVec4(b(f.dof()), b(f.chromatic()), b(f.sharpen()), b(f.sky()));

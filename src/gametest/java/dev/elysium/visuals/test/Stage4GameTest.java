@@ -30,7 +30,7 @@ import java.util.Set;
 public class Stage4GameTest implements FabricClientGameTest {
 	private static final String TAG = SodiumCompat.INSTALLED ? "sodium-" : "vanilla-";
 	private static final List<String> EFFECTS = List.of("reflections", "sky", "clouds", "rays", "ao", "bloom", "tonemap",
-			"exposure", "underwater", "dof", "chromatic", "sharpen", "wet");
+			"exposure", "underwater", "dof", "chromatic", "sharpen", "wet", "drops");
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
@@ -68,6 +68,7 @@ public class Stage4GameTest implements FabricClientGameTest {
 			eachEffect(context, world);
 			presets(context, world);
 			wetness(context);
+			drops(context, world);
 			underwaterAndNight(context, world);
 			migration(context);
 			iris(context);
@@ -156,6 +157,41 @@ public class Stage4GameTest implements FabricClientGameTest {
 		context.takeScreenshot("s4-" + TAG + "wet-drying");
 		context.waitTicks(70);
 		context.runOnClient(mc -> check(ShadersRenderer.wetness() == 0f, "dry again"));
+	}
+
+	/** Drops: the ground gets wet, puddles grow from nothing, rings on them; also the puddles seen from above (no stripes). */
+	private static void drops(ClientGameTestContext context, TestSingleplayerContext world) {
+		world.getServer().runCommand("tp @a 0 -55 4 0 55");
+		context.runOnClient(mc -> {
+			Shaders m = Shaders.get();
+			effects(Set.of("drops", "reflections"));
+			((NumberSetting) setting(m, "puddles")).set(0.7);
+			((NumberSetting) setting(m, "puddle_speed")).set(4.0);
+			((NumberSetting) setting(m, "drops_density")).set(0.8);
+			m.setEnabled(true);
+		});
+		context.waitTicks(4);
+		float start = context.computeOnClient(mc -> ShadersRenderer.puddleGrowth());
+		check(start < 0.2f, "puddles start small under the drops: " + start);
+		context.takeScreenshot("s4-" + TAG + "drops-start");
+		context.waitTicks(80);
+		context.runOnClient(mc -> check(ShadersRenderer.wetness() > 0.9f, "drops wet the ground: " + ShadersRenderer.wetness()));
+		float later = context.computeOnClient(mc -> ShadersRenderer.puddleGrowth());
+		check(later > start + 0.4f, "puddles grow: " + start + " -> " + later);
+		context.takeScreenshot("s4-" + TAG + "drops-puddles");
+		// Same scene from other angles (stripes showed across puddles before).
+		for (int pitch : new int[]{20, 40, 75}) {
+			world.getServer().runCommand("tp @a 0 -55 4 15 " + pitch);
+			context.waitTicks(5);
+			context.takeScreenshot("s4-" + TAG + "drops-angle-" + pitch);
+		}
+		context.runOnClient(mc -> {
+			((NumberSetting) setting(Shaders.get(), "puddles")).set(0.5);
+			((NumberSetting) setting(Shaders.get(), "puddle_speed")).set(1.0);
+			Shaders.get().setEnabled(false);
+		});
+		world.getServer().runCommand("tp @a 0 -59 2 0 12");
+		context.waitTicks(80);
 	}
 
 	private static void underwaterAndNight(ClientGameTestContext context, TestSingleplayerContext world) {

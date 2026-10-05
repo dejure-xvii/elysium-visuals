@@ -113,10 +113,11 @@ float luma(vec3 c) {
 float puddleMask(vec3 p, vec3 n) {
     vec3 w = p + Camera.xyz;
     float level = smoothstep(0.9, 0.98, n.y);
-    // fbm sits around 0.45 ± 0.12: "0" leaves a few small puddles, "1" floods most of the ground.
-    float threshold = 0.68 - Strength3.y * 0.3;
+    // fbm sits around 0.45 ± 0.12: near 0 a few small puddles, "1" floods most of the ground.
+    // Growing the amount spreads them out from the noise peaks (how drops fill them up).
+    float threshold = 0.7 - Strength3.y * 0.32;
     float noise = fbm(w.xz * 0.11) * 0.85 + valueNoise(w.xz * 0.9) * 0.15;
-    return level * smoothstep(threshold, threshold + 0.05, noise);
+    return level * smoothstep(threshold, threshold + 0.05, noise) * smoothstep(0.0, 0.08, Strength3.y);
 }
 
 // How wet the surface looks (0..1), puddles fully wet.

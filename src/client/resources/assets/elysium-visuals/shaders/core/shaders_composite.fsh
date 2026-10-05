@@ -43,6 +43,35 @@ vec4 soft(sampler2D s, vec2 uv, float depth) {
     return sum / w;
 }
 
+// Rings spreading where drops hit a puddle (world xz). Each 1.4-block cell gets a
+// drop now and then at a random spot; returns x = ring brightness, yz = the
+// direction the ring pushes the surface (to wobble the reflection).
+vec3 ripples(vec2 xz) {
+    const float CELL = 1.4;
+    vec2 id = floor(xz / CELL);
+    vec3 sum = vec3(0.0);
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            vec2 cid = id + vec2(x, y);
+            float h = hash12(cid);
+            float t = Camera.w * (0.7 + h * 0.6) + h * 7.3;
+            float cycle = floor(t), phase = fract(t);
+            // Not every cell gets a drop every cycle: more of them the stronger the drops.
+            if (hash12(cid + cycle * 1.37) > SunScreen.w * 0.9 + 0.05) {
+                continue;
+            }
+            vec2 center = (cid + 0.2 + 0.6 * vec2(hash12(cid + cycle + 3.1), hash12(cid + cycle + 7.7))) * CELL;
+            vec2 d = xz - center;
+            float len = length(d);
+            float radius = phase * 0.75;
+            float ring = exp(-pow((len - radius) * 16.0, 2.0)) * (1.0 - phase) * (1.0 - phase);
+            sum.x += ring;
+            sum.yz += (len > 1e-3 ? d / len : vec2(0.0)) * ring;
+        }
+    }
+    return sum;
+}
+
 void main() {
     vec3 c = texture(SceneSampler, texCoord).rgb;
     float depth = texture(DepthSampler, texCoord).r;
@@ -63,18 +92,28 @@ void main() {
         }
         // Wet surfaces: darker and more saturated, glints of the sun, puddles.
         float wet = wetnessAt(p, n);
+        vec2 wobble = vec2(0.0);
         if (wet > 0.0) {
             float puddle = puddleMask(p, n) * Strength3.x;
+            // Drops: rings on the puddles that bend the reflection a little.
+            float ring = 0.0;
+            if (SunScreen.w > 0.001 && puddle > 0.02 && length(p) < 48.0) {
+                vec3 rp = ripples(p.xz + Camera.xz);
+                ring = rp.x * puddle * smoothstep(48.0, 20.0, length(p));
+                wobble = rp.yz * ring * 0.006;
+            }
             float dark = wet * 0.42 + puddle * 0.25;
             vec3 sat = mix(vec3(luma(c)), c, 1.0 + wet * 0.3);
             c = sat * (1.0 - dark);
             vec3 h = normalize(normalize(SunDir.xyz) - dir);
             float glint = pow(max(dot(n, h), 0.0), mix(48.0, 220.0, puddle)) * (wet * 0.6 + puddle * 1.4);
             c += SunColor.rgb * glint * (0.25 + 0.75 * SunDir.w) * (1.0 - SkyColor.w * 0.5);
+            // The ring edges catch the light of the sky.
+            c += (SkyColor.rgb * 0.5 + 0.15) * ring * 0.35;
         }
         // Reflections (and the puddle mirror).
         if (Flags1.x > 0.5 || Flags1.w > 0.5) {
-            vec4 r = soft(ReflectSampler, texCoord, depth);
+            vec4 r = soft(ReflectSampler, texCoord + wobble, depth);
             c = mix(c, r.rgb, r.a);
         }
     }

@@ -9,6 +9,12 @@ import dev.elysium.visuals.client.module.setting.NumberSetting;
 import dev.elysium.visuals.client.notify.Notifications;
 import dev.elysium.visuals.client.render.IrisCompat;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.Heightmap;
 
 import java.util.List;
 import java.util.Set;
@@ -37,7 +43,8 @@ public class Shaders extends Module {
 					option("dof", "Глубина резкости"),
 					option("chromatic", "Хроматическая аберрация"),
 					option("sharpen", "Резкость"),
-					option("wet", "Мокрота")),
+					option("wet", "Мокрота"),
+					option("drops", "Капли")),
 			Set.of("reflections", "sky", "clouds", "rays", "ao", "bloom", "tonemap")))
 			.disableWhen("sky", () -> customSkyOn() ? "небо рисует CustomSky" : null);
 	private final ModeSetting quality = add(new ModeSetting("quality", "Качество",
@@ -60,7 +67,11 @@ public class Shaders extends Module {
 	private final NumberSetting wetStrength = add(new NumberSetting("wet_strength", "Сила мокроты", 0.7, 0.05, 1, 0.05))
 			.visibleWhen(() -> effects.isSelected("wet"));
 	private final NumberSetting puddles = add(new NumberSetting("puddles", "Количество луж", 0.5, 0, 1, 0.05))
-			.visibleWhen(() -> effects.isSelected("wet"));
+			.visibleWhen(() -> effects.isSelected("wet") || effects.isSelected("drops"));
+	private final NumberSetting dropsDensity = add(new NumberSetting("drops_density", "Сила капель", 0.5, 0.1, 1, 0.05))
+			.visibleWhen(() -> effects.isSelected("drops"));
+	private final NumberSetting puddleSpeed = add(new NumberSetting("puddle_speed", "Скорость появления луж", 1, 0.25, 4, 0.25, "x"))
+			.visibleWhen(() -> effects.isSelected("drops"));
 	private final NumberSetting saturation = add(new NumberSetting("saturation", "Насыщенность", 1, 0, 2, 0.05));
 
 	// Clouds (moved here from CustomSky).
@@ -96,7 +107,40 @@ public class Shaders extends Module {
 		if (IrisCompat.shaderPackInUse()) {
 			setEnabled(false);
 			Notifications.alert("Shaders", "Выключен: активен шейдерпак Iris");
+			return;
 		}
+		if (effect("drops")) {
+			spawnDrops(mc);
+		}
+	}
+
+	/**
+	 * Drops falling around you (client particles only): vanilla falling water,
+	 * which splashes where it lands. They start a few blocks above the top block,
+	 * so under a roof they land on the roof.
+	 */
+	private void spawnDrops(Minecraft mc) {
+		LocalPlayer p = mc.player;
+		if (p == null || mc.level == null || mc.isPaused() || mc.level.dimension() != Level.OVERWORLD) {
+			return;
+		}
+		RandomSource rnd = p.getRandom();
+		int count = Math.round(dropsDensity.floatValue() * 14);
+		for (int i = 0; i < count; i++) {
+			double x = p.getX() + (rnd.nextDouble() - 0.5) * 24, z = p.getZ() + (rnd.nextDouble() - 0.5) * 24;
+			int top = mc.level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(x), Mth.floor(z));
+			double y = Math.max(top, p.getY() - 4) + 3 + rnd.nextDouble() * 6;
+			mc.level.addParticle(ParticleTypes.FALLING_WATER, x, y, z, 0, 0, 0);
+		}
+	}
+
+	public float dropsDensity() {
+		return dropsDensity.floatValue();
+	}
+
+	/** How fast puddles form under the drops (1 = about half a minute to full). */
+	public float puddleSpeed() {
+		return puddleSpeed.floatValue();
 	}
 
 	@Override

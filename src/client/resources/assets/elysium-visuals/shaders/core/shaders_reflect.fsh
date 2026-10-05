@@ -82,11 +82,15 @@ void main() {
             }
             float sd = texture(DepthSampler, s.xy).r;
             if (!isSky(sd)) {
-                float sceneDist = length(positionAt(s.xy, sd));
+                vec3 scenePos = positionAt(s.xy, sd);
+                float sceneDist = length(scenePos);
                 float rayDist = length(q);
                 // About one step thick: thicker and the ray "hits" things it passed behind (striped copies).
                 float thickness = stepLen * 1.3 + 0.15;
-                if (sceneDist < rayDist && rayDist - sceneDist < thickness) {
+                // A "hit" on the reflecting surface itself is depth imprecision at a grazing
+                // angle (it showed as stripes across puddles): only things off that plane count.
+                bool offPlane = dot(scenePos - p, n) > 0.25 + dist * 0.01;
+                if (offPlane && sceneDist < rayDist && rayDist - sceneDist < thickness) {
                     // Refine between the last two steps.
                     float a = t - stepLen, b = t;
                     for (int k = 0; k < 4; k++) {
