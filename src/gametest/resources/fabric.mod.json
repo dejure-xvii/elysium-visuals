@@ -6,6 +6,7 @@
 	"environment": "client",
 	"entrypoints": {
 		"fabric-client-gametest": [
+			"dev.elysium.visuals.test.ArmorHudGameTest",
 			"dev.elysium.visuals.test.Stage1GameTest",
 			"dev.elysium.visuals.test.Stage2GameTest",
 			"dev.elysium.visuals.test.Stage3GameTest",
