@@ -6,7 +6,18 @@
 	"environment": "client",
 	"entrypoints": {
 		"fabric-client-gametest": [
-			"dev.elysium.visuals.test.BusPetGameTest"
+			"dev.elysium.visuals.test.BusPetGameTest",
+			"dev.elysium.visuals.test.ArmorHudGameTest",
+			"dev.elysium.visuals.test.Stage1GameTest",
+			"dev.elysium.visuals.test.Stage2GameTest",
+			"dev.elysium.visuals.test.Stage3GameTest",
+			"dev.elysium.visuals.test.Stage4GameTest",
+			"dev.elysium.visuals.test.NewModulesGameTest",
+			"dev.elysium.visuals.test.MainMenuGameTest",
+			"dev.elysium.visuals.test.CloudsGameTest",
+			"dev.elysium.visuals.test.HudTextGameTest",
+			"dev.elysium.visuals.test.ClickGuiGameTest",
+			"dev.elysium.visuals.test.PunchyGameTest"
 		]
 	},
 	"mixins": [
