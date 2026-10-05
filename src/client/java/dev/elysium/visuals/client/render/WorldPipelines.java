@@ -30,6 +30,10 @@ public final class WorldPipelines {
 	public static final RenderType SOLID = color("solid_color", false, BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA);
 	public static final RenderType SOLID_XRAY = color("solid_color_xray", true, BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA);
 	/** Plasma fill ({@code POSITION_TEX_COLOR_NORMAL}: plasma coords, color A, color B in the normal). */
+	/** Opaque untextured models that write depth (client-side pets). */
+	public static final RenderType OPAQUE = RenderType.create(ElysiumVisuals.MOD_ID + "_opaque_color",
+			RenderSetup.builder(pipeline("opaque_color", "glow_color", DefaultVertexFormat.POSITION_COLOR, false,
+					BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA, true)).createRenderSetup());
 	public static final RenderType PLASMA = plasma("plasma", false);
 	public static final RenderType PLASMA_XRAY = plasma("plasma_xray", true);
 
@@ -37,6 +41,11 @@ public final class WorldPipelines {
 	}
 
 	private static RenderPipeline pipeline(String name, String shader, VertexFormat format, boolean xray, BlendFunction blend) {
+		return pipeline(name, shader, format, xray, blend, false);
+	}
+
+	private static RenderPipeline pipeline(String name, String shader, VertexFormat format, boolean xray, BlendFunction blend,
+										   boolean depthWrite) {
 		return RenderPipelines.register(RenderPipeline.builder(RenderPipelines.MATRICES_FOG_SNIPPET)
 				.withLocation(ElysiumVisuals.id("pipeline/" + name))
 				.withVertexShader(ElysiumVisuals.id("core/" + shader))
@@ -45,7 +54,7 @@ public final class WorldPipelines {
 				.withPrimitiveTopology(PrimitiveTopology.QUADS)
 				.withColorTargetState(new ColorTargetState(blend))
 				.withCull(false)
-				.withDepthStencilState(new DepthStencilState(xray ? CompareOp.ALWAYS_PASS : DepthStencilState.DEFAULT.depthTest(), false))
+				.withDepthStencilState(new DepthStencilState(xray ? CompareOp.ALWAYS_PASS : DepthStencilState.DEFAULT.depthTest(), depthWrite))
 				.build());
 	}
 

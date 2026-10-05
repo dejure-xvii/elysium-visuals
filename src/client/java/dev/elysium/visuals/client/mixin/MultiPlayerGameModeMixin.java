@@ -9,6 +9,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * FakePlayer: an attack on the client-only copy is never sent to the server
@@ -17,6 +19,14 @@ import org.spongepowered.asm.mixin.injection.At;
  */
 @Mixin(MultiPlayerGameMode.class)
 public abstract class MultiPlayerGameModeMixin {
+	/** CustomCrystal: no hit on a crystal whose blast would hurt you too much. */
+	@Inject(method = "attack", at = @At("HEAD"), cancellable = true)
+	private void elysium$crystalGuard(Player player, Entity entity, CallbackInfo ci) {
+		if (dev.elysium.visuals.client.module.impl.render.CustomCrystal.blocksAttack(entity)) {
+			ci.cancel();
+		}
+	}
+
 	@WrapWithCondition(method = "attack", at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V"))
 	private boolean elysium$fakeAttack(ClientPacketListener connection, Packet<?> packet, Player player, Entity entity) {

@@ -45,7 +45,7 @@ public class DeathPoint extends Module {
 		if (dead && !wasDead) {
 			pos = player.blockPosition();
 			dimension = player.level().dimension();
-			if (chat.isOn()) {
+			if (chat.isOn() && !DeathCoords.writesChat()) {
 				Alerts.chat(Component.literal("[Elysium] ").withColor(0x8FDBFF)
 						.append(Component.literal("Место смерти: " + pos.getX() + " " + pos.getY() + " " + pos.getZ()
 								+ " (" + dimensionName(dimension) + ")").withColor(0xFFFFFF)));

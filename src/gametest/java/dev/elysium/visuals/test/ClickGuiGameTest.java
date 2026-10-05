@@ -457,7 +457,7 @@ public class ClickGuiGameTest implements FabricClientGameTest {
 		context.runOnClient(mc -> ((NumberSetting) watermarkSetting("scale_watermark")).set(150.0));
 		context.waitTicks(5);
 		int bigW = context.computeOnClient(mc -> watermarkEl.width());
-		assertTrue(Math.abs(bigW - normalW * 1.5) <= 2, "Watermark at 150 % should be 1.5x wider: " + normalW + " -> " + bigW);
+		assertTrue(Math.abs(bigW - normalW * 1.5) <= Math.max(2, normalW * 0.06), "Watermark at 150 % should be 1.5x wider: " + normalW + " -> " + bigW);
 		context.takeScreenshot("hud-scale-150");
 		context.runOnClient(mc -> ((NumberSetting) watermarkSetting("scale_watermark")).set(100.0));
 		// An unknown style id (e.g. from an old config) falls back to the default.

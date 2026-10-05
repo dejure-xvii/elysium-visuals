@@ -20,10 +20,12 @@
 - **ClickGUI** с поиском, анимациями и темами: Elysium, Тёмная, Светлая, Liquid Glass и своя тема с выбором цветов.
 - **HUD**: ватермарка, таргет, бинды, эффекты, задержки, друзья, броня, координаты, информация о сервере и мире.
 - **Render**: CustomSky, Ambience, Hands, TargetESP, Trail, JumpCircle, KillEffect, LootBeams, Particles,
-  MotionBlur, Predictions, BlockOverlay, Crosshair, SwingAnimation, ViewModel, ShulkerPreview, NoRender и др.
+  MotionBlur, Predictions, BlockOverlay, Crosshair, SwingAnimation, ViewModel, ShulkerPreview, NoRender,
+  CustomPet, CustomCrystal, Optimizer и др.
 - **Player**: AutoSprint, AutoTool, Armor HUD, Item Counter, Health Alert, NoFriendDamage.
-- **Farm**: Loot Tracker, Session Timer, Tool Guard, Inventory Full.
-- **Utils**: друзья, уведомления, NameProtect, Death Point, ItemScroller, AutoAccept, FakePlayer и др.
+- **Farm**: Loot Tracker, Session Timer, Tool Guard, Inventory Full, AutoCraft.
+- **Utils**: друзья, уведомления, NameProtect, Death Point, ItemScroller, AutoAccept, FakePlayer, LockSlot,
+  ChatHelper, DeathCoords и др.
 - **Главное меню** в стиле лаунчера: 360°-панорамы (Лес, Река, Горы, Ночное небо, Закат), анимированный градиент
   и свои PNG/JPG из `config/elysium-visuals/backgrounds`. Модуль MainMenu возвращает ванильное меню.
 - **Аккаунты**: офлайн и Microsoft, смена аккаунта без перезапуска, общий список с Elysium Launcher.

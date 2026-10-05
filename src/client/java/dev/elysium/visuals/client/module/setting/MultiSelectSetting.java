@@ -17,6 +17,7 @@ public class MultiSelectSetting extends Setting<Set<String>> {
 	}
 
 	private final List<Option> options;
+	private final java.util.Map<String, java.util.function.Supplier<String>> disabled = new java.util.HashMap<>();
 
 	public MultiSelectSetting(String id, String name, List<Option> options, Set<String> defaultSelected) {
 		super(id, name, Collections.unmodifiableSet(new LinkedHashSet<>(defaultSelected)));
@@ -29,6 +30,23 @@ public class MultiSelectSetting extends Setting<Set<String>> {
 
 	public List<Option> options() {
 		return options;
+	}
+
+	/** Shows {@code optionId} greyed out with the reason the supplier gives (null = available). */
+	public MultiSelectSetting disableWhen(String optionId, java.util.function.Supplier<String> reason) {
+		disabled.put(optionId, reason);
+		return this;
+	}
+
+	/** Why the option can't be used right now, or null. */
+	public String disabledReason(String optionId) {
+		java.util.function.Supplier<String> r = disabled.get(optionId);
+		return r == null ? null : r.get();
+	}
+
+	/** Selected and not disabled. */
+	public boolean isActive(String optionId) {
+		return isSelected(optionId) && disabledReason(optionId) == null;
 	}
 
 	public boolean isSelected(String optionId) {

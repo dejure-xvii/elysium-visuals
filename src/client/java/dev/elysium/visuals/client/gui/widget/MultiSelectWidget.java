@@ -54,7 +54,9 @@ public class MultiSelectWidget extends UiElement {
 		RenderUtil.well(g, x, y, width, height, 5, p, Math.max(h, e * 0.5f));
 		RenderUtil.focusRing(g, x, y, width, height, 5, p, e * 0.8f);
 
-		String summary = setting.selectedCount() + " из " + setting.options().size();
+		long active = setting.options().stream().filter(o -> setting.isActive(o.id())).count();
+		long usable = setting.options().stream().filter(o -> setting.disabledReason(o.id()) == null).count();
+		String summary = active + " из " + usable;
 		int chevronX = x + width - 9;
 		int summaryX = chevronX - 8 - RenderUtil.width(summary);
 		RenderUtil.text(g, summary, RenderUtil.Face.REGULAR, summaryX, y + 5, p.accent2());
@@ -75,6 +77,17 @@ public class MultiSelectWidget extends UiElement {
 				RenderUtil.roundedRect(g, x + 3, iy, width - 6, ITEM_H - 1, 4, ColorUtil.withAlpha(p.text(), Math.round(0x10 * ih * e)));
 			}
 
+			String reason = setting.disabledReason(o.id());
+			if (reason != null) {
+				// Greyed out: the label and, on the right, who already does it.
+				int rw = Math.min(RenderUtil.width(reason, RenderUtil.Face.SMALL), (width - 20) / 2);
+				RenderUtil.text(g, RenderUtil.ellipsize(o.label(), width - 28 - rw, false), RenderUtil.Face.REGULAR, x + 10, iy + 4,
+						ColorUtil.mulAlpha(p.textFaint(), e));
+				RenderUtil.text(g, RenderUtil.ellipsize(reason, rw, RenderUtil.Face.SMALL), RenderUtil.Face.SMALL, x + width - 9 - rw, iy + 5,
+						ColorUtil.mulAlpha(p.textFaint(), e));
+				iy += ITEM_H;
+				continue;
+			}
 			int textColor = ColorUtil.mix(p.textDim(), p.text(), Math.max(c, ih));
 			RenderUtil.text(g, RenderUtil.ellipsize(o.label(), width - 34, false), RenderUtil.Face.REGULAR, x + 10, iy + 4,
 					ColorUtil.mulAlpha(textColor, e));
@@ -102,7 +115,7 @@ public class MultiSelectWidget extends UiElement {
 			return true;
 		}
 		int index = (int) ((my - (y + HEADER_H + 2)) / ITEM_H);
-		if (index >= 0 && index < setting.options().size()) {
+		if (index >= 0 && index < setting.options().size() && setting.disabledReason(setting.options().get(index).id()) == null) {
 			setting.toggle(setting.options().get(index).id());
 		}
 		return true;

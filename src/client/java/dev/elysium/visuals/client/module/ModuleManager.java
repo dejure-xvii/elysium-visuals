@@ -6,6 +6,11 @@ import com.mojang.blaze3d.platform.InputConstants;
 import dev.elysium.visuals.ElysiumVisuals;
 import dev.elysium.visuals.client.Panic;
 import dev.elysium.visuals.client.module.impl.farm.InventoryAlert;
+import dev.elysium.visuals.client.module.impl.farm.AutoCraft;
+import dev.elysium.visuals.client.module.impl.utils.LockSlot;
+import dev.elysium.visuals.client.module.impl.utils.ChatHelper;
+import dev.elysium.visuals.client.module.impl.utils.DeathCoords;
+import dev.elysium.visuals.client.module.impl.render.Optimizer;
 import dev.elysium.visuals.client.module.impl.farm.LootTracker;
 import dev.elysium.visuals.client.module.impl.farm.SessionTimer;
 import dev.elysium.visuals.client.module.impl.farm.ToolGuard;
@@ -16,6 +21,8 @@ import dev.elysium.visuals.client.module.impl.player.HealthAlert;
 import dev.elysium.visuals.client.module.impl.player.ItemCounter;
 import dev.elysium.visuals.client.module.impl.player.NoFriendDamage;
 import dev.elysium.visuals.client.module.impl.render.Crosshair;
+import dev.elysium.visuals.client.module.impl.render.CustomPet;
+import dev.elysium.visuals.client.module.impl.render.CustomCrystal;
 import dev.elysium.visuals.client.module.impl.render.JumpCircle;
 import dev.elysium.visuals.client.module.impl.render.Keystrokes;
 import dev.elysium.visuals.client.module.impl.render.KillEffect;
@@ -92,6 +99,8 @@ public final class ModuleManager {
 		register(new LootBeams());
 		register(new Hands());
 		register(new KillEffect());
+		register(new CustomPet());
+		register(new CustomCrystal());
 
 		register(new Coordinates());
 		register(new FriendsModule());
@@ -115,6 +124,11 @@ public final class ModuleManager {
 		register(new ToolGuard());
 		register(new LootTracker());
 		register(new MainMenu());
+		register(new AutoCraft());
+		register(new LockSlot());
+		register(new ChatHelper());
+		register(new DeathCoords());
+		register(new Optimizer());
 	}
 
 	public void init() {

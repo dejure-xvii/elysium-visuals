@@ -6,6 +6,7 @@
 	"environment": "client",
 	"entrypoints": {
 		"fabric-client-gametest": [
+			"dev.elysium.visuals.test.NewModulesGameTest",
 			"dev.elysium.visuals.test.MainMenuGameTest",
 			"dev.elysium.visuals.test.CloudsGameTest",
 			"dev.elysium.visuals.test.HudTextGameTest",
