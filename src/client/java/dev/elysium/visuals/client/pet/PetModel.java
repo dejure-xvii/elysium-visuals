@@ -53,8 +53,19 @@ public final class PetModel {
 	final float rearZ;
 	/** Top of the model, for the name plate. */
 	final float height;
+	/** A vehicle: the "legs" are wheels that roll, it doesn't sit or lie down. */
+	public final boolean vehicle;
+	/** Wheel radius in model units (vehicles). */
+	public final float wheelRadius;
 
 	PetModel(float hatX, float hatY, float hatZ, float legHeight, float tailRest, float rearZ, float height) {
+		this(hatX, hatY, hatZ, legHeight, tailRest, rearZ, height, false, 0);
+	}
+
+	PetModel(float hatX, float hatY, float hatZ, float legHeight, float tailRest, float rearZ, float height, boolean vehicle,
+			 float wheelRadius) {
+		this.vehicle = vehicle;
+		this.wheelRadius = wheelRadius;
 		this.hatX = hatX;
 		this.hatY = hatY;
 		this.hatZ = hatZ;
@@ -186,6 +197,65 @@ public final class PetModel {
 	public static final PetModel DACHSHUND = dachshund();
 	public static final PetModel CAT = cat();
 	public static final PetModel FOX = fox();
+	public static final PetModel BUS = bus();
+
+	/**
+	 * "Бусик": an olive-green van with a short hood (like a T4). The legs are
+	 * its wheels; the head is an empty part on the roof (where the hat goes).
+	 */
+	private static PetModel bus() {
+		int olive = 0xFF6B6B3A, roof = 0xFF5C5C32, line = 0xFF4A4A28, glass = 0xFF26303A, black = 0xFF1C1C1C;
+		int light = 0xFFEDEBD2, grille = 0xFF34351F, plate = 0xFFE8E8E8, tire = 0xFF181818, rim = 0xFF4E5030;
+		PetModel m = new PetModel(0, 13.2f, -2, 0, 0, -11, 14, true, 3);
+		m.part(Part.BODY, 0, 7, 0)
+				// Body: cargo box and cab, the roof a shade darker.
+				.box(-5, 2.6f, -11, 5, 12.6f, 6.6f, olive)
+				.box(-5.05f, 12.3f, -11.05f, 5.05f, 13, 6.65f, roof)
+				// Short sloping front: hood, then the windshield frame stepping back.
+				.box(-5, 2.6f, 6.6f, 5, 8.6f, 10.6f, olive)
+				.box(-4.95f, 8.6f, 6.6f, 4.95f, 10.6f, 8.2f, olive)
+				.box(-4.95f, 10.6f, 6.6f, 4.95f, 12.3f, 7.3f, olive)
+				.box(-4.2f, 8.9f, 8.2f, 4.2f, 10.4f, 8.25f, glass)
+				.box(-4.2f, 10.6f, 7.3f, 4.2f, 12.1f, 7.35f, glass)
+				// Side windows of the cab, the sliding door and the rear doors.
+				.pair(5, 9, 2.8f, 5.06f, 11.9f, 6.2f, glass)
+				.pair(5, 3.4f, -1.2f, 5.06f, 12, -0.9f, line)
+				.box(-0.12f, 3.4f, -11.08f, 0.12f, 12.2f, -11, line)
+				.pair(0.7f, 9, -11.1f, 4.2f, 11.7f, -11, glass)
+				// Face: headlights, grille, plate.
+				.pair(2.7f, 6.9f, 10.6f, 4.6f, 8.1f, 10.68f, light)
+				.box(-2.4f, 6.7f, 10.6f, 2.4f, 8.3f, 10.65f, grille)
+				.box(-1.7f, 4.2f, 10.95f, 1.7f, 5.2f, 11.25f, plate)
+				// Bumpers and mirrors.
+				.box(-5.3f, 2.6f, 10.6f, 5.3f, 4, 11.2f, black)
+				.box(-5.3f, 2.6f, -11.6f, 5.3f, 4, -11, black)
+				.pair(5, 9.8f, 6.3f, 6.3f, 11.1f, 6.7f, black)
+				// Wheel arches.
+				.pair(5, 2.6f, 4.3f, 5.08f, 6.6f, 9.7f, line)
+				.pair(5, 2.6f, -9.7f, 5.08f, 6.6f, -4.3f, line);
+		m.part(Part.HEAD, 0, 13, -2);
+		wheel(m.part(Part.LEG_FL, -5.1f, 3, 7), -5.1f, 7, tire, rim, -1);
+		wheel(m.part(Part.LEG_FR, 5.1f, 3, 7), 5.1f, 7, tire, rim, 1);
+		wheel(m.part(Part.LEG_BL, -5.1f, 3, -7), -5.1f, -7, tire, rim, -1);
+		wheel(m.part(Part.LEG_BR, 5.1f, 3, -7), 5.1f, -7, tire, rim, 1);
+		return m;
+	}
+
+	/** A wheel of radius 3 around (x, 3, z): two crossed tire boxes (rounder than a square when it turns) and a rim. */
+	private static void wheel(PartDef d, float x, float z, int tire, int rim, int side) {
+		float in = x - side * 0.7f, out = x + side * 0.7f;
+		float x0 = Math.min(in, out), x1 = Math.max(in, out);
+		d.box(x0, 0, z - 1.3f, x1, 6, z + 1.3f, tire)
+				.box(x0, 1.3f, z - 3, x1, 4.7f, z + 3, tire)
+				.box(x0, 0.45f, z - 2.4f, x1, 5.55f, z + 2.4f, tire);
+		float r0 = side > 0 ? x1 : x1 - 0.05f, r1 = side > 0 ? x1 + 0.05f : x1;
+		if (side < 0) {
+			r0 = x0 - 0.05f;
+			r1 = x0;
+		}
+		d.box(r0, 1.6f, z - 1.4f, r1, 4.4f, z + 1.4f, rim)
+				.box(r0 + side * 0.01f, 2.5f, z - 0.5f, r1 + side * 0.01f, 3.5f, z + 0.5f, 0xFF2A2A2A);
+	}
 
 	private static PetModel dachshund() {
 		int black = 0xFF2A2422, tan = 0xFFB8693A, dark = 0xFF141010;

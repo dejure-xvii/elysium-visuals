@@ -43,7 +43,7 @@ import static dev.elysium.visuals.client.module.setting.MultiSelectSetting.optio
  */
 public class CustomPet extends Module {
 	private final ModeSetting kind = add(new ModeSetting("kind", "Питомец",
-			List.of(option("none", "Нет"), option("dachshund", "Такса"), option("cat", "Котик"), option("fox", "Лисёнок")), "dachshund"));
+			List.of(option("none", "Нет"), option("dachshund", "Такса"), option("cat", "Котик"), option("fox", "Лисёнок"), option("bus", "Бусик")), "dachshund"));
 	private final NumberSetting size = add(new NumberSetting("size", "Размер", 1, 0.5, 2.5, 0.05, "x"));
 	private final BooleanSetting propeller = add(new BooleanSetting("propeller", "Пропеллер", false));
 	private final BooleanSetting showName = add(new BooleanSetting("show_name", "Имя над головой", true));
@@ -60,13 +60,14 @@ public class CustomPet extends Module {
 	private float walk, prevWalk, speed, prevSpeed;
 	private int idleTicks, stuckTicks, lookTicks, nextLook = 80;
 	private float sitAmount, prevSitAmount, lieAmount, prevLieAmount;
+	private float steer, prevSteer;
 	private final Random random = new Random();
 	private final ScreenProjector projector = new ScreenProjector();
 	private double renderX, renderY, renderZ;
 	private boolean rendered;
 
 	public CustomPet() {
-		super("custom_pet", "CustomPet", "Питомец, который ходит за вами (видите только вы)", Category.RENDER);
+		super("custom_pet", "CustomPet", "Питомец, который ходит (или ездит) за вами (видите только вы)", Category.RENDER);
 		LevelRenderEvents.COLLECT_SUBMITS.register(this::render);
 	}
 
@@ -75,6 +76,7 @@ public class CustomPet extends Module {
 			case "dachshund" -> PetModel.DACHSHUND;
 			case "cat" -> PetModel.CAT;
 			case "fox" -> PetModel.FOX;
+			case "bus" -> PetModel.BUS;
 			default -> null;
 		};
 	}
@@ -221,7 +223,14 @@ public class CustomPet extends Module {
 			float target = (float) Math.toDegrees(Math.atan2(nz - pz, nx - px)) - 90f;
 			bodyYaw += Mth.wrapDegrees(target - bodyYaw) * 0.35f;
 		}
+		// A van turns its front wheels into the turn.
+		prevSteer = steer;
+		float turn = moved > 0.01 ? Mth.clamp(Mth.wrapDegrees(bodyYaw - prevBodyYaw) * 5f, -30f, 30f) : 0f;
+		steer += (turn - steer) * 0.3f;
 		boolean resting = idleTicks > 25 && onGround;
+		if (model().vehicle) {
+			resting = false; // a van doesn't sit or lie down
+		}
 		sitAmount += ((resting && idleTicks < 260 ? 1 : 0) - sitAmount) * 0.15f;
 		lieAmount += ((resting && idleTicks >= 260 ? 1 : 0) - lieAmount) * 0.08f;
 
@@ -346,6 +355,50 @@ public class CustomPet extends Module {
 		float lie = Mth.lerp(pt, prevLieAmount, lieAmount);
 		double time = (System.nanoTime() / 1e9);
 
+		PetModel.Pose pose = model.vehicle ? vehiclePose(model, walkPhase, spd, Mth.lerp(pt, prevSteer, steer), time)
+				: animalPose(model, mc, walkPhase, spd, sit, lie, head, time);
+		pose.hat = propeller.isOn();
+		pose.propeller = (float) ((time * 900) % 360);
+
+		// Light at the pet: block or sky light, whichever is brighter.
+		BlockPos lp = BlockPos.containing(renderX, renderY + 0.3, renderZ);
+		int raw = level.getRawBrightness(lp, level.getSkyDarken());
+		float light = 0.28f + 0.72f * raw / 15f;
+		int hat1 = ThemeColors.primary() | 0xFF000000, hat2 = ThemeColors.secondary() | 0xFF000000;
+
+		PoseStack ps = ctx.poseStack();
+		ps.pushPose();
+		ps.translate(renderX - cam.x, renderY - cam.y, renderZ - cam.z);
+		ps.mulPose(Axis.YP.rotationDegrees(-yaw));
+		float sc = (float) scale();
+		ps.scale(sc, sc, sc);
+		PoseStack local = new PoseStack();
+		local.last().pose().set(ps.last().pose());
+		local.last().normal().set(ps.last().normal());
+		ps.popPose();
+		ctx.submitNodeCollector().submitCustomGeometry(new PoseStack(), WorldPipelines.OPAQUE,
+				(p, vc) -> model.draw(local, vc, pose, light, hat1, hat2));
+	}
+
+	/** The van: wheels roll with the distance driven, the front ones steer, the body sways a little. */
+	private PetModel.Pose vehiclePose(PetModel model, float walkPhase, float spd, float steerDeg, double time) {
+		PetModel.Pose pose = new PetModel.Pose();
+		// walk grows by 5.5 per block driven; the wheel turns by distance / radius.
+		double radiusBlocks = model.wheelRadius / 16.0;
+		float roll = (float) Math.toDegrees(walkPhase / 5.5 / radiusBlocks);
+		pose.set(Part.LEG_FL, roll, steerDeg, 0);
+		pose.set(Part.LEG_FR, roll, steerDeg, 0);
+		pose.set(Part.LEG_BL, roll, 0, 0);
+		pose.set(Part.LEG_BR, roll, 0, 0);
+		float moving = Math.min(1f, spd / 0.1f);
+		// The body leans out of the turn and rocks on bumps while driving.
+		float rock = (float) Math.sin(time * 9) * 0.6f * moving;
+		pose.set(Part.BODY, rock * 0.5f, 0, -steerDeg * 0.12f + rock * 0.4f);
+		pose.drop = (float) (Math.abs(Math.sin(time * 11)) * 0.25 * moving);
+		return pose;
+	}
+
+	private PetModel.Pose animalPose(PetModel model, Minecraft mc, float walkPhase, float spd, float sit, float lie, float head, double time) {
 		PetModel.Pose pose = new PetModel.Pose();
 		float swing = Math.min(1f, spd / 0.16f) * (spd > 0.22f ? 48f : 34f);
 		float s = Mth.sin(walkPhase);
@@ -385,27 +438,13 @@ public class CustomPet extends Module {
 		boolean happy = Math.hypot(mc.player.getX() - renderX, mc.player.getZ() - renderZ) < 4;
 		float wag = (float) Math.sin(time * (happy ? 14 : 5)) * (happy ? 32 : 14);
 		pose.set(Part.TAIL, model.tailRest + (air ? 15 : 0), wag, 0);
-		pose.hat = propeller.isOn();
-		pose.propeller = (float) ((time * 900) % 360);
+		return pose;
+	}
 
-		// Light at the pet: block or sky light, whichever is brighter.
-		BlockPos lp = BlockPos.containing(renderX, renderY + 0.3, renderZ);
-		int raw = level.getRawBrightness(lp, level.getSkyDarken());
-		float light = 0.28f + 0.72f * raw / 15f;
-		int hat1 = ThemeColors.primary() | 0xFF000000, hat2 = ThemeColors.secondary() | 0xFF000000;
-
-		PoseStack ps = ctx.poseStack();
-		ps.pushPose();
-		ps.translate(renderX - cam.x, renderY - cam.y, renderZ - cam.z);
-		ps.mulPose(Axis.YP.rotationDegrees(-yaw));
-		float sc = (float) scale();
-		ps.scale(sc, sc, sc);
-		PoseStack local = new PoseStack();
-		local.last().pose().set(ps.last().pose());
-		local.last().normal().set(ps.last().normal());
-		ps.popPose();
-		ctx.submitNodeCollector().submitCustomGeometry(new PoseStack(), WorldPipelines.OPAQUE,
-				(p, vc) -> model.draw(local, vc, pose, light, hat1, hat2));
+	/** The name over the pet: the van is "Бусик" while the name is still the default one. */
+	private String shownName() {
+		String n = name.get();
+		return kind.is("bus") && n.equals(name.defaultValue()) ? "Бусик" : n;
 	}
 
 	@Override
@@ -424,7 +463,7 @@ public class CustomPet extends Module {
 			return;
 		}
 		Palette p = ThemeManager.get().palette();
-		String text = name.get();
+		String text = shownName();
 		int w = RenderUtil.width(text, RenderUtil.Face.BOLD) + 12;
 		float bx = projector.x - w / 2f, by = projector.y - 14;
 		RenderUtil.roundedRect(g, bx, by, w, 13, 6, ColorUtil.withAlpha(p.bgBottom(), 0xB0));
